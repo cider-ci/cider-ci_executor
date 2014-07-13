@@ -2,9 +2,9 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software. 
 
-(ns cider-ci.nrepl 
+(ns cider-ci.ex.nrepl 
   (:require 
-    [cider-ci.util :as util]
+    [cider-ci.ex.util :as util]
     [clojure.tools.logging :as logging]
     [clojure.tools.nrepl.server :as nrepl-server]
     )

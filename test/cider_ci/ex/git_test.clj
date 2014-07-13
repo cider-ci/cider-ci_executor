@@ -2,18 +2,18 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software.
 
-(ns cider-ci.git-test
+(ns cider-ci.ex.git-test
   (:import 
     [java.io File]
     )
   (:require  
     [clojure.java.shell :as shell]
     [clojure.pprint :as pprint]
-    [cider-ci.shared :as shared]
+    [cider-ci.ex.shared :as shared]
     )
   (:use 
     [clojure.test]
-    [cider-ci.git]
+    [cider-ci.ex.git]
   ))
 
 (defn create-tmp-dir [prefix]

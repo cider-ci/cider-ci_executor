@@ -2,7 +2,7 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software.
 
-(ns cider-ci.exec
+(ns cider-ci.ex.exec
   (:import 
     [java.io File]
     [java.util UUID]
@@ -13,7 +13,7 @@
     [clj-time.core :as time]
     [clojure.string :as string]
     [clojure.tools.logging :as logging]
-    [cider-ci.util :as util]
+    [cider-ci.ex.util :as util]
     )
   (:use 
     [clj-logging-config.log4j :only (set-logger!)]

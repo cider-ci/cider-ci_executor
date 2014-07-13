@@ -14,7 +14,6 @@
 /target
 /targets/
 /tmp
-domina_conf.clj
-domina_conf.yml
+conf.yml
 pom.xml
 pom.xml.asc

@@ -2,7 +2,7 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software. 
 
-(ns cider-ci.scratch
+(ns cider-ci.ex.scratch
   (:require 
     [clj-commons-exec :as commons-exec]
     ))

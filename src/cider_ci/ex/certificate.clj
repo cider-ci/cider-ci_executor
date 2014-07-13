@@ -2,7 +2,7 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software.
 
-(ns cider-ci.certificate
+(ns cider-ci.ex.certificate
   (:import
     [java.security KeyPairGenerator KeyStore Security SecureRandom]
     [org.bouncycastle.jce X509Principal]

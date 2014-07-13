@@ -2,9 +2,9 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software. 
 
-(ns cider-ci.with
+(ns cider-ci.ex.with
   (:require 
-    [cider-ci.util :as util]
+    [cider-ci.ex.util :as util]
     [clj-logging-config.log4j :as logging-config]
     [clojure.stacktrace :as stacktrace]
     [clojure.tools.logging :as clj-logging]

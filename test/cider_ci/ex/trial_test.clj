@@ -2,13 +2,13 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software. 
 
-(ns cider-ci.trial-test
+(ns cider-ci.ex.trial-test
   (:require  
     [clojure.pprint :as pprint]
-    [cider-ci.util :as util]
-    [cider-ci.trial :as trial]
-    [cider-ci.reporter :as reporter]
-    [cider-ci.git :as git]
+    [cider-ci.ex.util :as util]
+    [cider-ci.ex.trial :as trial]
+    [cider-ci.ex.reporter :as reporter]
+    [cider-ci.ex.git :as git]
     )
   (:use 
     [clojure.test]

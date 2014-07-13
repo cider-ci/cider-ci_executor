@@ -2,7 +2,7 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software. 
 
-(ns cider-ci.json
+(ns cider-ci.ex.json
   (:require 
     [clojure.data.json]
     [clj-time.core :as time]

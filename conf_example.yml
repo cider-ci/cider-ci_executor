@@ -1,6 +1,6 @@
 shared:
-  working-dir: "/Users/thomas/Programming/CIDER-CI/cider-ci_executor/tmp/working-dir"
-  git-repos-dir: "/Users/thomas/Programming/CIDER-CI/cider-ci_executor/tmp/repository-dir"
+  working-dir: "./tmp/working-dir"
+  git-repos-dir: "./tmp/repository-dir"
 reporter: 
   max-retries: 1
   retry-ms-factor: 1000

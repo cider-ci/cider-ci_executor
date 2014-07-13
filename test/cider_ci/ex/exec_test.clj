@@ -2,17 +2,17 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software. 
 
-(ns cider-ci.exec-test
+(ns cider-ci.ex.exec-test
   (:import 
     [org.apache.commons.exec ExecuteWatchdog]
     )
   (:require  
     [clojure.pprint :as pprint]
-    [cider-ci.util :as util]
+    [cider-ci.ex.util :as util]
     )
   (:use 
     [clojure.test]
-    [cider-ci.exec]
+    [cider-ci.ex.exec]
     [midje.sweet]
     ))
 

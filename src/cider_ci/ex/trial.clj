@@ -2,7 +2,7 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software. 
  
-(ns cider-ci.trial
+(ns cider-ci.ex.trial
   (:import 
     [java.io File ]
     )
@@ -12,14 +12,14 @@
     [clojure.pprint :as pprint]
     [clojure.stacktrace :as stacktrace]
     [clojure.tools.logging :as logging]
-    [cider-ci.attachments :as attachments]
-    [cider-ci.exec :as exec]
-    [cider-ci.git :as git]
-    [cider-ci.reporter :as reporter]
-    [cider-ci.port-provider :as port-provider]
-    [cider-ci.script :as script]
-    [cider-ci.util :as util]
-    [cider-ci.with :as with]
+    [cider-ci.ex.attachments :as attachments]
+    [cider-ci.ex.exec :as exec]
+    [cider-ci.ex.git :as git]
+    [cider-ci.ex.reporter :as reporter]
+    [cider-ci.ex.port-provider :as port-provider]
+    [cider-ci.ex.script :as script]
+    [cider-ci.ex.util :as util]
+    [cider-ci.ex.with :as with]
     [robert.hooke :as hooke]
     )
   (:use 
@@ -32,7 +32,7 @@
   (fn [params]
     (let [url (:patch_url params)
           fun (fn[agent-state]
-                (let [res (reporter/put-as-json-with-retries url params)]
+                (let [res (reporter/patch-as-json-with-retries url params)]
                   (conj agent-state params)))]
       (send-off report-agent fun))))
 

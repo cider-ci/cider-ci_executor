@@ -2,7 +2,7 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software. 
 
-(ns cider-ci.web
+(ns cider-ci.ex.web
   (:use 
     [clj-logging-config.log4j :only (set-logger!)]
     )
@@ -14,8 +14,8 @@
     [clojure.tools.logging :as logging]
     [compojure.core]
     [compojure.handler]
-    [cider-ci.certificate :as certificate]
-    [cider-ci.trial :as trial]
+    [cider-ci.ex.certificate :as certificate]
+    [cider-ci.ex.trial :as trial]
     [ring.adapter.jetty :as jetty]
     [ring.middleware.json]
     ))

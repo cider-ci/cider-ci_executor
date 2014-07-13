@@ -2,20 +2,20 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software. 
 ;
-(ns cider-ci.main
+(ns cider-ci.ex.main
   (:gen-class)
   (:import 
     [java.io File]
     )
   (:require 
     [clojure.tools.logging :as logging]
-    [cider-ci.nrepl :as nrepl]
-    [cider-ci.reporter :as reporter]
-    [cider-ci.shared :as shared]
-    [cider-ci.trial :as trial]
-    [cider-ci.exec :as exec]
-    [cider-ci.util :as util]
-    [cider-ci.web :as web]
+    [cider-ci.ex.nrepl :as nrepl]
+    [cider-ci.ex.reporter :as reporter]
+    [cider-ci.ex.shared :as shared]
+    [cider-ci.ex.trial :as trial]
+    [cider-ci.ex.exec :as exec]
+    [cider-ci.ex.util :as util]
+    [cider-ci.ex.web :as web]
     )
   (:use 
     [clj-logging-config.log4j :only (set-logger!)]
@@ -32,10 +32,8 @@
      :web web/conf
      :execution exec/conf
      } 
-    "/etc/cider-ci/conf"
-    "/etc/cider-ci_conf"
-    (str (System/getProperty "user.home") (File/separator) "cider-ci_conf")
-    "cider-ci_conf"))
+    "/etc/cider-ci/executor/conf"
+    "conf"))
 
 (defn -main
   [& args]

@@ -3,13 +3,13 @@
 ; See the "LICENSE.txt" file provided with this software. 
 
 
-(ns cider-ci.script-process-test
+(ns cider-ci.ex.script-process-test
   (:require  
-    [cider-ci.util :as util]
+    [cider-ci.ex.util :as util]
     )
   (:use
     [clojure.test]
-    [cider-ci.script]
+    [cider-ci.ex.script]
     [midje.sweet]
     ))
 

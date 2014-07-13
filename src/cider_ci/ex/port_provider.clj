@@ -2,7 +2,7 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software. 
  
-(ns cider-ci.port-provider
+(ns cider-ci.ex.port-provider
   (:import 
     [java.net ServerSocket DatagramSocket InetAddress]
     )
@@ -11,7 +11,7 @@
     [clojure.pprint :as pprint]
     [clojure.stacktrace :as stacktrace]
     [clojure.tools.logging :as logging]
-    [cider-ci.util :as util]
+    [cider-ci.ex.util :as util]
     ))
 
 ;(logging-config/set-logger! :level :debug)

@@ -2,7 +2,7 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software. 
 
-(ns cider-ci.util
+(ns cider-ci.ex.util
   (:import
     [java.util UUID]
     )
@@ -46,7 +46,7 @@
          data))
 
 (defn application-trace [tr]
-  (filter-trace tr #".*cider-ci.*"))
+  (filter-trace tr #".*cider-ci.ex.*"))
 
 (defn date-time-to-iso8601 [date-time]
   (time-format/unparse (time-format/formatters :date-time) date-time))
