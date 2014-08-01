@@ -8,14 +8,16 @@
     [java.io File]
     )
   (:require 
-    [clojure.tools.logging :as logging]
-    [cider-ci.ex.nrepl :as nrepl]
-    [cider-ci.ex.reporter :as reporter]
-    [cider-ci.ex.shared :as shared]
-    [cider-ci.ex.trial :as trial]
     [cider-ci.ex.exec :as exec]
-    [cider-ci.ex.util :as util]
+    [cider-ci.ex.git :as git]
+    [cider-ci.ex.reporter :as reporter]
+    [cider-ci.ex.trial :as trial]
     [cider-ci.ex.web :as web]
+    [cider-ci.utils.config-loader :as config-loader]
+    [cider-ci.utils.debug :as debug]
+    [cider-ci.utils.http :as http]
+    [cider-ci.utils.nrepl :as nrepl]
+    [clojure.tools.logging :as logging]
     )
   (:use 
     [clj-logging-config.log4j :only (set-logger!)]
@@ -23,24 +25,37 @@
 
 ;(set-logger! :level :debug)
 
+
+(defonce conf (atom {}))
+
 (defn read-config []
-  (logging/info "read-config invoked")
-  (util/try-read-and-apply-config 
-    {:shared shared/conf 
-     :nrepl nrepl/conf
-     :reporter reporter/conf
-     :web web/conf
-     :execution exec/conf
-     } 
-    "/etc/cider-ci/executor/conf"
-    "conf"))
+  (config-loader/read-and-merge
+    conf ["conf_default.yml" 
+          "/etc/executor/conf.yml" 
+          "conf.yml"]))
+
+
+(defn initialize []
+  (.mkdir (File. (:working_dir @conf)))
+  (.mkdir (File. (:git_repos_dir @conf))))
 
 (defn -main
   [& args]
   (logging/info "starting -main " args)
   (read-config)
-  (shared/initialize)
+  (initialize)
+  (nrepl/initialize (:nrepl @conf))
+  (http/initialize (select-keys @conf [:basic_auth]))
+  (git/initialize (select-keys @conf [:sudo :basic_auth :working_dir :git_repos_dir]))
+  (exec/initialize (select-keys @conf [:exec :sudo]))
   (trial/initialize)
-  (nrepl/start-server)
-  (web/start-server))
+  (reporter/initialize (:reporter @conf))
+  (web/initialize (select-keys @conf [:web :basic_auth])))
+
+
+;### Debug ####################################################################
+;(debug/debug-ns *ns*)
+;(logging-config/set-logger! :level :debug)
+;(logging-config/set-logger! :level :info)
+
 

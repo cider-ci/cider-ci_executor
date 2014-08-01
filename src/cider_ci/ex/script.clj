@@ -5,16 +5,11 @@
 (ns cider-ci.ex.script
   (:require 
     [cider-ci.ex.exec :as exec]
-    [clojure.tools.logging :as logging]
+    [cider-ci.utils.debug :as debug]
     [clj-commons-exec :as commons-exec]
-    )
-  (:use 
-    [clj-logging-config.log4j :only (set-logger!)]
-    )
-  )
+    [clojure.tools.logging :as logging]
+    ))
 
-
-;(set-logger! :level :debug)
 
 ;; ### EXECUTOR AGENTS ########################################################
 
@@ -112,4 +107,9 @@
                  (or has-failures  (not= "success" (:state script-exec-result))))))))
   
    (terminate-services scripts process-result-handler))
+
+;### Debug ####################################################################
+;(debug/debug-ns *ns*)
+;(logging-config/set-logger! :level :debug)
+;(logging-config/set-logger! :level :info)
 

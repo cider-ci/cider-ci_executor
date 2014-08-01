@@ -4,18 +4,10 @@
 
 (ns cider-ci.ex.scratch
   (:require 
-    [clj-commons-exec :as commons-exec]
+    [clj-logging-config.log4j :as logging-config]
+    [clj-time.core :as time]
+    [clojure.string :as string]
+    [clojure.tools.logging :as logging]
+    [cider-ci.utils.debug :as debug]
     ))
 
-(def sleeping-exec nil)
-
-(defn create-sleeping-exec []
-  (def sleeping-exec 
-    (commons-exec/sh ["sleep" "10"])))
- 
-(defn deref-sleeping-exec []
-  (deref sleeping-exec 1000 {}))
-
-
-
-;(into {} (map (fn [[x y]] [x y] ) {:a "x" :b 7}))

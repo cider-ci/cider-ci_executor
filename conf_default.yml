@@ -1,0 +1,29 @@
+working_dir: "./tmp/working-dir"
+git_repos_dir: "./tmp/repository-dir"
+
+basic_auth:
+  user: trial-manager
+  secret: secret
+
+web: 
+  host: "0.0.0.0"
+  port: 8088
+  ssl-port: 8443
+
+reporter: 
+  max_retries: 1
+  retry_ms_factor: 1000
+
+nrepl: 
+  port: 7888
+  bind: "127.0.0.1"
+  enabled: false
+
+exec: 
+  environment_variables:
+    PGHOST: localhost
+    PGPORT: 5432
+    PG92PORT: 5432
+    PGUSER: postgres
+
+

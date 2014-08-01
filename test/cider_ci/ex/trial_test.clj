@@ -35,7 +35,7 @@
        (fact "returns not failed"
              (:state @(:params-atom (wait-for-final-state (trial/execute default-trial-exec-params)))) => "success"
              (provided 
-               (reporter/put-as-json-with-retries anything anything) => "" :times (range)
+               (reporter/patch-as-json-with-retries anything anything) => "" :times (range)
                (git/prepare-and-create-working-dir anything) =>  "/tmp" :times (range))
              ))
 

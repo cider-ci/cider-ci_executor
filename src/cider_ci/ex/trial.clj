@@ -7,35 +7,37 @@
     [java.io File ]
     )
   (:require
+    [cider-ci.ex.attachments :as attachments]
+    [cider-ci.ex.exec :as exec]
+    [cider-ci.ex.git :as git]
+    [cider-ci.ex.port-provider :as port-provider]
+    [cider-ci.ex.reporter :as reporter]
+    [cider-ci.ex.script :as script]
+    [cider-ci.utils.daemon :as daemon]
+    [cider-ci.utils.debug :as debug]
+    [cider-ci.utils.with :as with]
     [clj-commons-exec :as commons-exec]
+    [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clojure.pprint :as pprint]
     [clojure.stacktrace :as stacktrace]
     [clojure.tools.logging :as logging]
-    [cider-ci.ex.attachments :as attachments]
-    [cider-ci.ex.exec :as exec]
-    [cider-ci.ex.git :as git]
-    [cider-ci.ex.reporter :as reporter]
-    [cider-ci.ex.port-provider :as port-provider]
-    [cider-ci.ex.script :as script]
-    [cider-ci.ex.util :as util]
-    [cider-ci.ex.with :as with]
     [robert.hooke :as hooke]
-    )
-  (:use 
-    [clj-logging-config.log4j :only (set-logger!)]
     ))
 
-;(set-logger! :level :debug)
 
+;#### sending updates #########################################################
 (defn create-update-sender-via-agent [report-agent]
   (fn [params]
-    (let [url (:patch_url params)
-          fun (fn[agent-state]
-                (let [res (reporter/patch-as-json-with-retries url params)]
-                  (conj agent-state params)))]
-      (send-off report-agent fun))))
-
+    (logging/debug "invoke anonymous update-sender" [params])
+    (with/logging
+      (let [url (:patch_url params)
+            fun (fn [agent-state]
+                  (with/logging
+                    (let [res (reporter/patch-as-json-with-retries url params)]
+                      (conj agent-state params))))]
+        (logging/debug "sending report off" {:url url})
+        (send-off report-agent fun)))))
 
 (defn send-trial-patch 
   "Sends just the patch-params" 
@@ -45,6 +47,7 @@
          patch-params)))
 
 
+;#### prepare trial ###########################################################
 (defn- set-and-send-start-params [params-atom report-agent]
   (swap! params-atom (fn [params] (conj params {:state "executing"}))) 
   (send-trial-patch report-agent @params-atom (select-keys @params-atom [:state :started_at])))
@@ -63,9 +66,9 @@
     script-atoms))
 
 
-
+;#### manage trials ###########################################################
 (defonce ^:private trials-atom (atom {}))
-
+;(clojure.pprint/pprint trials-atom)
 (defn get-trials [] 
   "Retrieves the received and not yet discarded trials"
   (flatten (map (fn [t] [(:params-atom (second t))])
@@ -75,12 +78,8 @@
   (when-let [trial (@trials-atom id)]
     (:params-atom trial)))
 
-
-;(clojure.pprint/pprint trials-atom)
- 
 (defn- create-trial   
-  "Creates a new trial, stores it in trials under it's id and returns the
-  trial"
+  "Creates a new trial, stores it in trials under it's id and returns the trial"
   [params]
   (let [id (:trial_id params)]
     (swap! trials-atom 
@@ -91,49 +90,11 @@
     (@trials-atom id)))
 
 (defn- delete-trial [id trial]
-  (logging/debug "deleting trial " id)
   (when (= 0 (:exit @(commons-exec/sh ["rm" "-rf" (:working_dir trial)])))
     (swap! trials-atom #(dissoc %1 %2) id)))
 
-; ### BEGIN clean trials #######################################
 
-(defonce ^:private trials-cleaner-stopped (atom false))
-
-(defn start-trials-cleaner []
-  (logging/info "started trials cleaner")
-  (swap! trials-cleaner-stopped (fn [_] false)) 
-  (future
-    (loop [] 
-      (doseq [[id trial] @trials-atom] 
-        (logging/debug "deleting? " id trial)
-        (with/logging-and-swallow
-          (let [params @(:params-atom trial) 
-                timestamp (or (:finished_at params) (:started_at params))]
-            (when (> (time/in-minutes (time/interval timestamp (time/now))) 150)
-              (delete-trial id trial)))))
-      (Thread/sleep (* 60 1000))
-      (if-not @trials-cleaner-stopped 
-        (recur)
-        (logging/info "stopped trials cleaner")))))
-
-(defn clean-all []
-  (doseq [[id trial] @trials-atom] 
-    (logging/debug "deleting? " id trial)
-    (with/logging-and-swallow
-      (delete-trial id trial))))
-  
-(defn stop-trials-cleaner []
-  (swap! trials-cleaner-stopped (fn [_] true)))
-
-; ### END clean trials #######################################
-
-(defn initialize []
-  (.addShutdownHook 
-    (Runtime/getRuntime)
-    (Thread. (fn [] (clean-all))))
-  (start-trials-cleaner))
-
-
+;#### execute #################################################################
 (defn execute [params] 
   (logging/info execute [params])
   (let [started-at (time/now)
@@ -191,4 +152,43 @@
       (finally trial))
     trial))
 
-;(hooke/add-hook #'get-trial #'util/logit)
+
+;#### trials cleaner service ##################################################
+(defn clean-all-trails []
+  (doseq [[id trial] @trials-atom] 
+    (with/suppress-and-log-warn
+      (delete-trial id trial))))
+
+(defn clean-outdated-trials []
+  (doseq [[id trial] @trials-atom] 
+    (with/suppress-and-log-warn
+      (let [params @(:params-atom trial) 
+            timestamp (or (:finished_at params) (:started_at params))]
+        (when (> (time/in-minutes (time/interval timestamp (time/now))) 150)
+          (delete-trial id trial))))))
+
+(daemon/define "trial-sweeper" 
+  start-trial-sweeper 
+  stop-trial-sweeper 
+  1
+  (logging/debug "trial-sweeper")
+  (clean-outdated-trials))
+
+;#### initialize ###############################################################
+(defn initialize []
+  (.addShutdownHook 
+    (Runtime/getRuntime)
+    (Thread. (fn [] 
+               (stop-trial-sweeper)
+               (clean-all-trails))))
+  (start-trial-sweeper))
+
+
+;### Debug ####################################################################
+;(debug/debug-ns *ns*)
+;(logging-config/set-logger! :level :debug)
+;(logging-config/set-logger! :level :info)
+
+
+
+

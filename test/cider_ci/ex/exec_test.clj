@@ -16,7 +16,8 @@
     [midje.sweet]
     ))
 
-(facts "about the return parameters of successful test-exec-script-for-params" 
+(facts :env
+  "about the return parameters of successful test-exec-script-for-params" 
        (let [def-params {:name "testscript"
                          :body "env | sort"
                          :working_dir  (System/getProperty "user.home")

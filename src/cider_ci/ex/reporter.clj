@@ -1,27 +1,28 @@
 (ns cider-ci.ex.reporter
-  (:use 
-    [clojure.stacktrace :only (print-stack-trace)]
-    [clj-logging-config.log4j :only (set-logger!)]
-    )
   (:require 
-    [clj-http.client :as http-client]
+    [cider-ci.ex.json]
+    [cider-ci.utils.debug :as debug]
+    [cider-ci.utils.http :as http]
+    [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clj-time.format :as time-format]
     [clojure.data.json :as json]
     [clojure.string :as string]
     [clojure.tools.logging :as logging]
-    [cider-ci.ex.json]
     ))
 
-;(set-logger! :level :debug)
 
-(defonce conf (atom {:max-retries 10
-                     :retry-ms-factor 3000
+(defonce conf (atom {:max_retries 10
+                     :retry_ms_factor 3000
                      }))
 
+
+;### Helper ###################################################################
 (defn rubyize-keyword [kw]
   (string/replace (name kw) "-" "_"))
 
+
+;### Patch ####################################################################
 (defn patch-as-json [url params]
   (logging/info "PATCHTNG to: " url)
   (let [body (json/write-str params :key-fn rubyize-keyword)
@@ -30,14 +31,14 @@
                  :accept :json 
                  :body body} ]
     (logging/debug "PATCH: " params)
-    (http-client/patch url params)))
+    (http/patch url params)))
 
 (defn patch-as-json-with-retries 
   ([url params]
-   (patch-as-json-with-retries url params (:max-retries @conf)))
+   (patch-as-json-with-retries url params (:max_retries @conf)))
   ([url params max-retries]
    (loop [retry 0]
-     (Thread/sleep (* retry retry (:retry-ms-factor @conf)))
+     (Thread/sleep (* retry retry (:retry_ms_factor @conf)))
      (let [res  (try
                   (patch-as-json url params)
                   {:url url :params params :send-status "success"}
@@ -49,3 +50,14 @@
          (if (>= retry max-retries)
            res
            (recur (inc retry))))))))
+
+
+;### Initialize ###############################################################
+(defn initialize [new-conf]
+  (reset! conf new-conf))
+
+
+;### Debug ####################################################################
+;(debug/debug-ns *ns*)
+;(logging-config/set-logger! :level :debug)
+;(logging-config/set-logger! :level :info)

@@ -7,15 +7,12 @@
     [java.net ServerSocket DatagramSocket InetAddress]
     )
   (:require
+    [cider-ci.utils.debug :as debug]
     [clj-logging-config.log4j :as  logging-config]
     [clojure.pprint :as pprint]
     [clojure.stacktrace :as stacktrace]
     [clojure.tools.logging :as logging]
-    [cider-ci.ex.util :as util]
     ))
-
-;(logging-config/set-logger! :level :debug)
-;(logging-config/set-logger! :level :info)
 
 (defonce ^:private occupied-ports-atom (atom #{}))
 
@@ -58,3 +55,10 @@
            port)
          (catch Exception e
            (occupy-port inet-address range-min range-max (inc retry))))))))
+
+;### Debug ####################################################################
+;(debug/debug-ns *ns*)
+;(logging-config/set-logger! :level :debug)
+;(logging-config/set-logger! :level :info)
+
+
