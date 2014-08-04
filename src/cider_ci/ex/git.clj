@@ -7,8 +7,9 @@
     [java.io File]
     )
   (:require 
-    [cider-ci.utils.system :as system]
     [cider-ci.utils.debug :as debug]
+    [cider-ci.utils.exception :as exception]
+    [cider-ci.utils.system :as system]
     [clj-logging-config.log4j :as logging-config]
     [clojure.pprint :as pprint]
     [clojure.string :as string]
@@ -64,7 +65,7 @@
 
 (defn- update [path repository-url]
   (let [res (system/exec-with-success-or-throw
-              ["git" "fetch" (insert-basic-auth repository-url)] 
+              ["git" "fetch"  (insert-basic-auth repository-url) "*:*"] 
               {:dir path
                :add-env {"GIT_SSL_NO_VERIFY" "1"}
                :watchdog (* 3 60 1000)})]))
@@ -76,6 +77,9 @@
       (create-mirror-clone repository-url repository-path))
     (when-not (repository-includes-commit? repository-path commit-id)
       (update repository-path repository-url))
+    (when-not (repository-includes-commit? repository-path commit-id)
+      (throw (IllegalStateException. (str "The git commit is not present." 
+                                          {:repository-path repository-path :commit-id commit-id}))))
     (conj agent-state {:commit-ids (conj (:commit-ids agent-state) commit-id)})))
 
 (defn- serialized-initialize-or-update-if-required [repository-url repository-id commit-id]
@@ -87,17 +91,18 @@
       (let [res-atom (atom nil)
             fun (fn [agent-state] 
                   (try 
-                    (reset! res-atom (initialize-or-update-if-required 
-                                       agent-state repository-url repository-id commit-id))
-                    @res-atom
+                    (reset! res-atom 
+                            (dissoc (initialize-or-update-if-required 
+                                      agent-state repository-url repository-id commit-id)
+                                    :exception))
                     (catch Exception e
-                      (reset! res-atom e)
-                      agent-state)))]
+                      (logging/warn (exception/stringify e))
+                      (reset! res-atom (conj agent-state {:exception e})))
+                    (finally @res-atom)))]
         (send-off repository-agent fun)
-        (await repository-agent)
         (while (nil? @res-atom) (Thread/sleep 100))
-        (when (instance? Exception @res-atom)
-          (throw @res-atom))))
+        (when-let [exception (:exception @res-atom)]
+          (throw exception))))
     (:repository-path @repository-agent)))
 
 (defn- clone-to-dir [repository-path commit-id dir]

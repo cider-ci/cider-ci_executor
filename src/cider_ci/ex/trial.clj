@@ -15,6 +15,7 @@
     [cider-ci.ex.script :as script]
     [cider-ci.utils.daemon :as daemon]
     [cider-ci.utils.debug :as debug]
+    [cider-ci.utils.exception :as exception]
     [cider-ci.utils.with :as with]
     [clj-commons-exec :as commons-exec]
     [clj-logging-config.log4j :as logging-config]
@@ -142,13 +143,14 @@
             trial)))
 
       (catch Exception e
-        (swap! params-atom (fn [params] 
-                             (conj params 
-                                   {:state "failed", 
-                                    :finished_at (time/now)
-                                    :error  (with-out-str (stacktrace/print-stack-trace e))})))
-        (logging/error  (str @params-atom (with-out-str (stacktrace/print-stack-trace e))))
-        ((create-update-sender-via-agent report-agent) @params-atom))
+        (let [e-str (exception/stringify e)]
+          (swap! params-atom (fn [params] 
+                               (conj params 
+                                     {:state "failed", 
+                                      :finished_at (time/now)
+                                      :error e-str })))
+          (logging/error e-str)
+          ((create-update-sender-via-agent report-agent) @params-atom)))
       (finally trial))
     trial))
 
