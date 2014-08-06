@@ -65,7 +65,7 @@
 
 (defn- update [path repository-url]
   (let [res (system/exec-with-success-or-throw
-              ["git" "fetch"  (insert-basic-auth repository-url) "*:*"] 
+              ["git" "fetch" "--force" "--tags" "--prune" (insert-basic-auth repository-url) "+*:*"] 
               {:dir path
                :add-env {"GIT_SSL_NO_VERIFY" "1"}
                :watchdog (* 3 60 1000)})]))
