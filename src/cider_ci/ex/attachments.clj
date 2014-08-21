@@ -15,22 +15,25 @@
     [me.raynes.fs :as fs]
     ))
 
+(defn put-file [file abs-working-dir base-url content-type]
+  (with/suppress-and-log-warn
+    (let [relative (apply str (drop (inc (count (str abs-working-dir))) 
+                                    (seq (str file))))
+          url (str base-url relative)]
+      (logging/debug "putting attachment" 
+                     {:file file :nomalized (fs/normalized file)
+                      :name (fs/name file) :base-name (fs/base-name file)
+                      :relative relative :url url})
+      (http/put url {:body file  :content-type content-type})
+      )))
+
+
 (defn put [working-dir attachments base-url]
   (let [abs-working-dir (fs/absolute (fs/file working-dir))]
     (doseq [[_ {glob :glob content-type :content-type}] attachments]
       (fs/with-cwd abs-working-dir
         (doseq [file (fs/glob glob)] 
-          (with/suppress-and-log-warn
-            (let [relative (apply str (drop (inc (count (str abs-working-dir))) 
-                                            (seq (str file))))
-                  url (str base-url relative)]
-              (logging/debug "putting attachment" 
-                             {:file file :nomalized (fs/normalized file)
-                              :name (fs/name file) :base-name (fs/base-name file)
-                              :relative relative :url url})
-              (let [result (http/put url {:body file  
-                                          :content-type content-type})]
-                (logging/debug "result: " result)))))))))
+          (put-file file abs-working-dir base-url content-type))))))
 
 ;### Debug ####################################################################
 ;(debug/debug-ns *ns*)
