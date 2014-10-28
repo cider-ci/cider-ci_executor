@@ -26,8 +26,8 @@
 (defn- insert-basic-auth [git-url]
   (when-not (re-matches #".*\/\/.*:.*@.*" git-url)
     (let [[method server_path] (clojure.string/split git-url #"\/\/")
-          {user :user secret :secret} (:basic_auth @conf) ] 
-      (str method "//" user ":" secret "@" server_path))))
+          {username :username password :password} (:basic_auth @conf) ] 
+      (str method "//" username ":" password "@" server_path))))
 
 (defn- canonical-repository-path [prepository-id]
   (str (:git_repos_dir @conf) (File/separator) prepository-id))

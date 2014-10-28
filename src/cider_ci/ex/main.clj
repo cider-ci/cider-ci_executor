@@ -31,7 +31,6 @@
 (defn read-config []
   (config-loader/read-and-merge
     conf ["conf_default.yml" 
-          "/etc/executor/conf.yml" 
           "conf.yml"]))
 
 
@@ -57,5 +56,3 @@
 ;(debug/debug-ns *ns*)
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
-
-

@@ -16,7 +16,7 @@
     ))
 
 (defn put-file [file abs-working-dir base-url content-type]
-  (with/suppress-and-log-warn
+  (with/logging
     (let [relative (apply str (drop (inc (count (str abs-working-dir))) 
                                     (seq (str file))))
           url (str base-url relative)]

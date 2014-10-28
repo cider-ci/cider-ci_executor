@@ -24,6 +24,9 @@
     [clojure.stacktrace :as stacktrace]
     [clojure.tools.logging :as logging]
     [robert.hooke :as hooke]
+    )
+  (:use 
+    [clojure.algo.generic.functor :only [fmap]]
     ))
 
 
@@ -55,16 +58,19 @@
 
 (defn- prepare-and-insert-scripts [params-atom]
   (let [initial-scripts (:scripts @params-atom)
-        script-atoms (map (fn [script-params]
-                            (atom (conj script-params 
-                                        (select-keys @params-atom
-                                                     [:environment_variables 
-                                                      :execution_id 
-                                                      :trial_id 
-                                                      :working_dir ]))))
-                          initial-scripts)]
+        script-atoms (->> initial-scripts
+                          (map (fn [[k v]]
+                                 [k (atom (conj v
+                                                {:name k}
+                                                (select-keys @params-atom
+                                                             [:environment_variables 
+                                                              :execution_id 
+                                                              :trial_id 
+                                                              :working_dir])))]))
+                          (into {}))]
     (swap! params-atom #(conj %1 {:scripts %2}) script-atoms)
-    script-atoms))
+    (map (fn [[k v]] v) script-atoms)))
+
 
 
 ;#### manage trials ###########################################################
@@ -123,6 +129,14 @@
 
           (script/process scripts-atoms  nil)
 
+          (attachments/put working-dir 
+                           (:trial_attachments @params-atom) 
+                           (:trial_attachments_url @params-atom))
+
+          (attachments/put working-dir 
+                           (:tree_attachments @params-atom) 
+                           (:tree_attachments_url @params-atom))
+
           (let [final-state (if (every? (fn [script-atom] 
                                           (= "success" (:state @script-atom))) 
                                         scripts-atoms) "success" "failed")]
@@ -132,10 +146,6 @@
                    final-state)
 
             ((create-update-sender-via-agent report-agent) @params-atom))
-
-          (future (attachments/put working-dir 
-                                   (:attachments @params-atom) 
-                                   (:attachments_url @params-atom)))
 
           (finally 
             (doseq [[_ port] ports]

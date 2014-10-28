@@ -1,9 +1,11 @@
-working_dir: "./tmp/working-dir"
-git_repos_dir: "./tmp/repository-dir"
+nrepl: 
+  port: 7888
+  bind: "127.0.0.1"
+  enabled: false
 
 basic_auth:
-  user: trial-manager
-  secret: secret
+  username: executor
+  password: secret
 
 web: 
   host: "0.0.0.0"
@@ -14,10 +16,8 @@ reporter:
   max_retries: 1
   retry_ms_factor: 1000
 
-nrepl: 
-  port: 7888
-  bind: "127.0.0.1"
-  enabled: false
+working_dir: "./tmp/working-dir"
+git_repos_dir: "./tmp/repository-dir"
 
 exec: 
   environment_variables:

@@ -4,10 +4,14 @@
 
 (ns cider-ci.ex.web
   (:require 
+    [cider-ci.auth.core :as auth]
+    [cider-ci.utils.routing :as routing]
+    [cider-ci.auth.http-basic :as http-basic]
     [cider-ci.ex.certificate :as certificate]
     [cider-ci.ex.trial :as trial]
-    [cider-ci.utils.http :as http]
     [cider-ci.utils.debug :as debug]
+    [cider-ci.utils.http :as http]
+    [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clojure.data :as data]
     [clojure.data.json :as json]
@@ -60,6 +64,7 @@
     {:status 404}))
 
 
+
 ;### Routing ##################################################################
 (defn build-routes [context]
   (cpj/routes
@@ -70,24 +75,23 @@
                  (cpj/GET "/trials" [] (get-trials))
                  (cpj/GET "/trials/:id" [id] (get-trial id)))))
 
-(defn log-handler [handler level]
-  (fn [request]
-    (logging/debug "log-handler " level " request: " request)
-    (let [response (handler request)]
-      (logging/debug  "log-handler " level " response: " response)
-      response)))
+;##### handler and routing ############################################################## 
 
 (defn build-main-handler [context]
   ( -> (compojure.handler/api (build-routes context))
-       (log-handler 2)
+       (routing/wrap-debug-logging 'cider-ci.ex.web)
+       (routing/wrap-debug-logging 'cider-ci.ex.web)
        (ring.middleware.json/wrap-json-params)
-       (log-handler 1)
-       (http/authenticate)
-       (log-handler 0)
+       (routing/wrap-debug-logging 'cider-ci.ex.web)
+       (auth/wrap-authenticate-and-authorize-service)
+       (routing/wrap-debug-logging 'cider-ci.ex.web)
+       (http-basic/wrap)
+       (routing/wrap-debug-logging 'cider-ci.ex.web)
+       (routing/wrap-log-exception)
        ))
 
-
 ;### Server ###################################################################
+;### TODO replaces this with the server from clj-utils
 (defonce server nil)
 (defn stop-server []
   (logging/info "stopping server")
@@ -114,6 +118,7 @@
 ;### Initialize ###############################################################
 (defn initialize [new-conf]
   (reset! conf new-conf)
+  (http-basic/initialize (select-keys @conf [:basic_auth]))
   (start-server))
 
 

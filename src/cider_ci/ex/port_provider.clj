@@ -29,7 +29,7 @@
 (defn occupy-port 
   "Tries to find an unoccupied and unused port in the range [range-min
   range-max]. Inet-address can be a hostname, ipv4, or ipv6 address. Including
-  the 'listen to all', e.g. '0.0.0.0'.  Returs the port as an integer if
+  the 'listen to all', e.g. '0.0.0.0'.  Returns the port as an integer if
   successful. Throws an exception if not. Occupied ports must be released with
   (release-port port)."
 
@@ -53,7 +53,7 @@
                      ds (DatagramSocket. port (InetAddress/getByName inet-address))]
            (swap! occupied-ports-atom #(conj %1 %2) port)
            port)
-         (catch Exception e
+         (catch Exception _
            (occupy-port inet-address range-min range-max (inc retry))))))))
 
 ;### Debug ####################################################################
