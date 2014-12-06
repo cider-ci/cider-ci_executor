@@ -138,8 +138,10 @@
                            (:tree_attachments_url @params-atom))
 
           (let [final-state (if (every? (fn [script-atom] 
-                                          (= "success" (:state @script-atom))) 
-                                        scripts-atoms) "success" "failed")]
+                                          (= "passed" (:state @script-atom))) 
+                                        scripts-atoms) 
+                              "passed" 
+                              "failed")]
 
             (swap! params-atom 
                    #(conj %1 {:state %2, :finished_at (time/now)}) 

@@ -32,7 +32,7 @@
 (defn use-memoized-or-execute [agent-state script]
   (let [res (agent-state (:name script))
         prev_state (:state res)]
-    (if (= prev_state "success")
+    (if (= prev_state "passed")
       agent-state
       (let [script-exec-result (exec/exec-script-for-params script)]
         (conj agent-state 
@@ -89,7 +89,7 @@
 
                       "clanup_executor" (do
                                           (logging/warn "TODO store and process cleanup-executor")
-                                          {:state "success" 
+                                          {:state "passed" 
                                            :stdout "Execution is deferred and might not be carried out at all."} )
 
                       "post_process" (exec/exec-script-for-params script)
@@ -104,7 +104,7 @@
           (swap! script-atom (fn [script script-exec-result] (conj script script-exec-result)) script-exec-result)
           (when process-result-handler (process-result-handler script-exec-result))
           (recur (rest scripts) 
-                 (or has-failures  (not= "success" (:state script-exec-result))))))))
+                 (or has-failures  (not= "passed" (:state script-exec-result))))))))
   
    (terminate-services scripts process-result-handler))
 

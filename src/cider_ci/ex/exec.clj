@@ -68,7 +68,7 @@
   {:finished_at (time/now)
    :exit_status (:exit exec-res)
    :state (condp = (:exit exec-res) 
-            0 "success" 
+            0 "passed" 
             "failed")
    :stdout (:out exec-res)
    :stderr (:err exec-res) 
@@ -143,7 +143,7 @@
   (let [exec-res (deref (:exec_promise params))]
     (conj params 
           (determine-final-parameters exec-res)
-          {:status "success"})))
+          {:status "passed"})))
 
 
 ;### Initialize ###############################################################
