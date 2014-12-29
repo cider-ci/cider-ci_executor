@@ -12,6 +12,7 @@
     [cider-ci.ex.git :as git]
     [cider-ci.ex.port-provider :as port-provider]
     [cider-ci.ex.reporter :as reporter]
+    [cider-ci.ex.result :as result]
     [cider-ci.ex.script :as script]
     [cider-ci.utils.daemon :as daemon]
     [cider-ci.utils.debug :as debug]
@@ -146,6 +147,8 @@
             (swap! params-atom 
                    #(conj %1 {:state %2, :finished_at (time/now)}) 
                    final-state)
+
+            (result/try-read-and-merge working-dir params-atom)
 
             ((create-update-sender-via-agent report-agent) @params-atom))
 
