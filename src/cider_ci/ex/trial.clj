@@ -60,19 +60,19 @@
 (defn- prepare-and-insert-scripts [params-atom]
   (let [initial-scripts (:scripts @params-atom)
         script-atoms (->> initial-scripts
-                          (map (fn [[k v]]
-                                 [k (atom (conj v
-                                                {:name k}
-                                                (select-keys @params-atom
-                                                             [:environment_variables 
-                                                              :execution_id 
-                                                              :trial_id 
-                                                              :working_dir])))]))
+                          (into [])
+                          (sort-by #(or (-> % second :order) 0) )
+                          (map (fn [[script-name script-spec]]
+                                 [script-name (atom (conj script-spec
+                                                          {:name script-name}
+                                                          (select-keys @params-atom
+                                                                       [:environment_variables 
+                                                                        :execution_id 
+                                                                        :trial_id 
+                                                                        :working_dir])))]))
                           (into {}))]
     (swap! params-atom #(conj %1 {:scripts %2}) script-atoms)
     (map (fn [[k v]] v) script-atoms)))
-
-
 
 ;#### manage trials ###########################################################
 (defonce ^:private trials-atom (atom {}))
