@@ -1,15 +1,15 @@
-; Copyright (C) 2013, 2014 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
+; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software. 
 
-(defproject cider-ci_executor "1.1.0-rc.1"
+(defproject cider-ci_executor "1.1.0"
   :description "Executor for ider-CI."
   :url "https://github.com/DrTom/cider-ci_executor"
   :license {:name "GNU Affero General Public License"
             :url "http://www.gnu.org/licenses/agpl-3.0.html"}
   :dependencies [
                  [cider-ci/clj-auth "2.1.0"]
-                 [cider-ci/clj-utils "2.3.0-rc.2"]
+                 [cider-ci/clj-utils "2.3.0"]
                  [org.clojure/tools.nrepl "0.2.6"]
                  [me.raynes/fs "1.4.6"]
                  [org.clojars.hozumi/clj-commons-exec "1.1.0"]
