@@ -25,4 +25,5 @@
   :aot [cider-ci.ex.main]
   :main cider-ci.ex.main 
   :repositories [["tmp" {:url "http://maven-repo-tmp.drtom.ch" :snapshots false}]]
+  :jvm-opts ["-Xmx256m"]
   )
