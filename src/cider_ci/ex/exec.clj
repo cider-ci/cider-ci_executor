@@ -78,6 +78,7 @@
              (or (:environment_variables (:exec @conf)) {}))
        (filter (fn [[k v]] (not= nil v))) 
        (map (fn [[k v]] [(name k) v]))
+       (map (fn [[k v]] [(string/upper-case k) v])) ; TODO,  remove this with Cider-CI version 3.0.0
        (into {})))
 
 ;### exec shell ###############################################################
