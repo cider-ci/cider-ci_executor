@@ -22,14 +22,6 @@
 
 (def conf (atom {:environment_variables {}}))
 
-;### Helpers ##################################################################
-(defn rubyize-keys [some-hash]
-  (into {} (map (fn [p] [(keyword (string/replace (name (first p)) #"-" "_")) (second p)] ) some-hash)))
-
-(defn upper-case-keys [some-hash]
-  (into {} (map (fn [p] [ (string/upper-case (name (first p))) (second p)] ) some-hash)))
-
-
 ;### Execute ##################################################################
 (defn- get-current-user-name []
   (System/getProperty "user.name"))
@@ -79,14 +71,14 @@
   (.getAbsolutePath (File. (:working_dir params))))
 
 (defn- prepare-env-variables [params]
-  (upper-case-keys 
-    (rubyize-keys
-      (conj { }
-            {:cider-ci_working_dir working-dir} 
-            (or (:ports params) {}) 
-            (or (:environment_variables params) {})
-            (or (:environment_variables (:exec @conf)) {})))))
-
+  (->> (conj { }
+             {:CIDER_CI_WORKING_DIR (working-dir params)} 
+             (or (:ports params) {}) 
+             (or (:environment_variables params) {})
+             (or (:environment_variables (:exec @conf)) {}))
+       (filter (fn [[k v]] (not= nil v))) 
+       (map (fn [[k v]] [(name k) v]))
+       (into {})))
 
 ;### exec shell ###############################################################
 (defn- interpreter [env_vars]
