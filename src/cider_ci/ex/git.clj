@@ -114,18 +114,6 @@
     {:dir dir})
   true)
 
-(defn- prepare-and-create-submodule-dir [submodule working-dir]
-  (let [submodule-repository-path (serialized-initialize-or-update-if-required 
-                                    (:git_url submodule) (:repository_id submodule) 
-                                    (:git_commit_id submodule))
-        submodule-dir (clojure.string/join 
-                                File/separator 
-                                (concat [working-dir] (:subpath_segments submodule)))]
-    (system/exec-with-success-or-throw ["mkdir" "-p" submodule-dir])
-    (clone-to-dir submodule-repository-path 
-                          (:git_commit_id submodule) 
-                          submodule-dir)))
-
 (defn prepare-and-create-working-dir [params]
   (let [working-dir-id (:trial_id params)]
     (when (clojure.string/blank? working-dir-id)
@@ -135,9 +123,6 @@
                             (:git_url params) (:repository_id params) (:git_commit_id params)) 
           working-dir (str (:working_dir @conf) (File/separator) working-dir-id)]
       (clone-to-dir repository-path (:git_commit_id params) working-dir)
-      (let [submodules (:git_submodules params)]
-        (doseq [submodule submodules]
-          (prepare-and-create-submodule-dir submodule working-dir)))
       (when-let [user (:user (:sudo @conf))]
         (system/exec-with-success-or-throw ["chown" "-R" user working-dir]))
       working-dir)))
