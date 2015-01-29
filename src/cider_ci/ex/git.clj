@@ -108,11 +108,19 @@
 (defn- clone-to-dir [repository-path commit-id dir]
   (system/exec-with-success-or-throw 
     ["git" "clone" "--shared" repository-path dir] 
-    {:watchdog (* 5 1000)})
+    {:watchdog (* 60 1000)})
   (system/exec-with-success-or-throw 
     ["git" "checkout" commit-id]
     {:dir dir})
   true)
+
+(defn- clone-submodules [working-dir options]
+  (let [timeout (or (:timeout options) 200)]
+    (system/exec-with-success-or-throw 
+      ["git" "submodule" "update" "--init" "--recursive"]
+      {:dir working-dir
+       :watchdog (* timeout 1000)
+       })))
 
 (defn prepare-and-create-working-dir [params]
   (let [working-dir-id (:trial_id params)]
@@ -123,6 +131,8 @@
                             (:git_url params) (:repository_id params) (:git_commit_id params)) 
           working-dir (str (:working_dir @conf) (File/separator) working-dir-id)]
       (clone-to-dir repository-path (:git_commit_id params) working-dir)
+      (when (-> params :git_options :submodules :clone)
+        (clone-submodules working-dir (or (-> params :git_options :submodules) {})))
       (when-let [user (:user (:sudo @conf))]
         (system/exec-with-success-or-throw ["chown" "-R" user working-dir]))
       working-dir)))
