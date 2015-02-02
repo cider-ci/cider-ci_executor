@@ -15,10 +15,17 @@
     [me.raynes.fs :as fs]
     ))
 
+
+(defn path-post-fix [file abs-working-dir]
+  (if (.startsWith (str file) (str abs-working-dir))
+    (apply str (drop (inc (count (str abs-working-dir))) 
+                     (seq (str file))))
+    (apply str (drop 1 (str (fs/normalized (str file)))))
+    ))
+
 (defn put-file [file abs-working-dir base-url content-type]
   (with/logging
-    (let [relative (apply str (drop (inc (count (str abs-working-dir))) 
-                                    (seq (str file))))
+    (let [relative (path-post-fix file abs-working-dir) 
           url (str base-url relative)]
       (logging/debug "putting attachment" 
                      {:file file :nomalized (fs/normalized file)
@@ -39,5 +46,4 @@
 ;(debug/debug-ns *ns*)
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
-
 
