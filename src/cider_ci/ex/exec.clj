@@ -77,7 +77,7 @@
              (or (:environment_variables params) {})
              (or (:environment_variables (:exec @conf)) {}))
        (filter (fn [[k v]] (not= nil v))) 
-       (map (fn [[k v]] [(name k) v]))
+       (map (fn [[k v]] [(name k) (str v)]))
        (map (fn [[k v]] [(string/upper-case k) v])) ; TODO,  remove this with Cider-CI version 3.0.0
        (into {})))
 
@@ -145,8 +145,7 @@
 
 
 ;### Debug ####################################################################
-; (debug/debug-ns *ns*)
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
-
+;(debug/debug-ns *ns*)
 

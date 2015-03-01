@@ -3,6 +3,7 @@
     [cider-ci.ex.json]
     [cider-ci.utils.debug :as debug]
     [cider-ci.utils.http :as http]
+    [cider-ci.utils.map :refer [deep-merge]]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clj-time.format :as time-format]
@@ -54,7 +55,8 @@
 
 ;### Initialize ###############################################################
 (defn initialize [new-conf]
-  (reset! conf new-conf))
+  (reset! conf (deep-merge @conf 
+                           new-conf)))
 
 
 ;### Debug ####################################################################

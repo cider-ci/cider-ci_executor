@@ -9,7 +9,10 @@
     )
   (:require 
     [cider-ci.ex.exec :as exec]
+    [cider-ci.utils.config :as config]
+    [cider-ci.ex.traits :as traits]
     [cider-ci.ex.git :as git]
+    [cider-ci.ex.ping :as ping]
     [cider-ci.ex.reporter :as reporter]
     [cider-ci.ex.trial :as trial]
     [cider-ci.ex.web :as web]
@@ -17,39 +20,73 @@
     [cider-ci.utils.debug :as debug]
     [cider-ci.utils.http :as http]
     [cider-ci.utils.nrepl :as nrepl]
+    [cider-ci.utils.with :as with]
     [clojure.tools.logging :as logging]
-    )
-  (:use 
-    [clj-logging-config.log4j :only (set-logger!)]
     ))
 
-;(set-logger! :level :debug)
 
+(defn working-dir []
+  (or (-> (config/get-config) :working_dir) 
+      (throw (IllegalStateException. ":working_dir config missing"))))
 
-(defonce conf (atom {}))
+(defn repos-dir []
+  (or (-> (config/get-config) :git_repos_dir)
+      (throw (IllegalStateException. ":git_repos_dir config missing"))))
 
-(defn read-config []
-  (config-loader/read-and-merge
-    conf ["conf_default.yml" 
-          "conf.yml"]))
-
+(defn basic-auth []
+  (or (-> (config/get-config) :basic_auth)
+      (throw (IllegalStateException. ":basic_auth config missing"))))
 
 (defn initialize []
-  (.mkdir (File. (:working_dir @conf)))
-  (.mkdir (File. (:git_repos_dir @conf))))
+  (.mkdir (File. (working-dir)))
+  (.mkdir (File. (repos-dir))))
+                    
+(defn -main [& args]
+  (with/logging 
+    (logging/info "starting -main " args)
+    (config/initialize ["./config/config_default.yml" "./config/config.yml"])
+    (let [conf (config/get-config)]
+      (logging/info conf)
 
-(defn -main
-  [& args]
-  (logging/info "starting -main " args)
-  (read-config)
-  (initialize)
-  (nrepl/initialize (:nrepl @conf))
-  (http/initialize (select-keys @conf [:basic_auth]))
-  (git/initialize (select-keys @conf [:sudo :basic_auth :working_dir :git_repos_dir]))
-  (exec/initialize (select-keys @conf [:exec :sudo]))
-  (trial/initialize)
-  (reporter/initialize (:reporter @conf))
-  (web/initialize (select-keys @conf [:web :basic_auth])))
+      (traits/initialize)
+
+      (nrepl/initialize (-> conf  :nrepl ))
+
+      (http/initialize {:basic_auth (-> conf :basic_auth)})
+
+      (initialize)
+
+
+      (git/initialize  {:sudo (-> conf :sudo)
+                        :basic_auth (basic-auth)
+                        :working_dir (working-dir)
+                        :git_repos_dir (repos-dir)})
+
+      (exec/initialize (select-keys conf [:exec :sudo]))
+
+      (web/initialize {:basic_auth (basic-auth)
+                       :http (-> conf :http)})
+
+      (ping/initialize config/get-config)
+
+      )))
+
+
+;  (read-config)
+;  (initialize)
+;  (nrepl/initialize (-> @conf :executor :nrepl ))
+;  
+;  (git/initialize  {:sudo (-> @conf :executor :sudo)
+;                    :basic_auth (basic-auth)
+;                    :working_dir (working-dir)
+;                    :git_repos_dir (repos-dir)})
+;  (exec/initialize (select-keys (-> @conf :executor) [:exec :sudo]))
+;  (trial/initialize)
+;  (reporter/initialize (-> @conf :executor :reporter))
+;  (web/initialize {:basic_auth (basic-auth)
+;                   :http (-> @conf :executor :http)})
+                      
+;                      )
 
 
 ;### Debug ####################################################################

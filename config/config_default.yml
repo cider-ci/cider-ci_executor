@@ -1,0 +1,33 @@
+services: 
+  dispatcher:
+    base_url: "http://127.0.0.1:8882/cider-ci/dispatcher"
+
+nrepl: 
+  port: 7888
+  bind: "127.0.0.1"
+  enabled: false
+
+http: 
+  host: localhost
+  port: 8088
+  ssl-port: 8443
+
+
+name: DemoExecutor
+
+basic_auth: 
+  username: DemoExecutor 
+  password: 5cfc3c91599a118ec0c67a6f2c15e7456cea71fa 
+
+
+reporter: 
+  max_retries: 1
+  retry_ms_factor: 1000
+
+sudo: false
+
+working_dir: "./tmp/working-dir"
+
+git_repos_dir: "./tmp/repository-dir"
+
+exec: {}

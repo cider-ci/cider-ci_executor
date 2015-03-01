@@ -27,7 +27,7 @@
     (str "/result.json")))
 
 (defn try-read-and-merge [working-dir params-atom]
-  (with/suppress-and-log-warn  
+  (with/suppress-and-log-debug  
     (let [json-data (-> (file-path-to-result working-dir)
                         slurp
                         json/read-str)]

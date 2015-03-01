@@ -85,7 +85,7 @@
        (routing/wrap-debug-logging 'cider-ci.ex.web)
        (auth/wrap-authenticate-and-authorize-service)
        (routing/wrap-debug-logging 'cider-ci.ex.web)
-       (http-basic/wrap)
+       (http-basic/wrap {:service true}) ; TODO, workaround, only check pw used both ways
        (routing/wrap-debug-logging 'cider-ci.ex.web)
        (routing/wrap-log-exception)
        ))
@@ -107,7 +107,7 @@
                            :keystore path
                            :key-password password
                            :join? false} 
-                          (select-keys (:web @conf) [:port :host :ssl-port])) ]
+                          (select-keys (:http @conf) [:port :host :ssl-port])) ]
     (if server (stop-server)) 
     (logging/info "starting server" server-conf)
     (def server (jetty/run-jetty 
@@ -123,8 +123,8 @@
 
 
 ;### Debug ####################################################################
-;(debug/debug-ns *ns*)
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
+;(debug/debug-ns *ns*)
 
 

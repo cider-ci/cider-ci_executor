@@ -1,0 +1,39 @@
+; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
+; Licensed under the terms of the GNU Affero General Public License v3.
+; See the "LICENSE.txt" file provided with this software. 
+;
+
+(ns cider-ci.ex.ping
+  (:require 
+    [cider-ci.ex.traits :as traits]
+    [cider-ci.utils.daemon :as daemon]
+    [cider-ci.utils.debug :as debug]
+    [cider-ci.utils.http :as http]
+    [cider-ci.utils.map :refer [deep-merge]]
+    [clj-yaml.core :as yaml]
+    [clojure.java.io :as io]
+    [clojure.tools.logging :as logging]
+    [clojure.data.json :as json]
+    ))
+
+
+(defn ^:dynamic get-config [] {})
+
+(defn ping []
+  (try 
+    (let [config (get-config)
+          url (str (-> config :services :dispatcher :base_url) "/ping")
+          traits (into [] (traits/get-traits))
+          data {:traits traits}
+          ]
+      (http/post url {:body (json/write-str data)})
+      (Thread/sleep (* 1000 3)))
+    (catch Exception e 
+      (logging/warn "ping to url failed " e))))
+
+(daemon/define "ping" start-ping stop-ping 3
+  (ping))
+
+(defn initialize [get-config-fn]
+  (def ^:dynamic get-config get-config-fn)
+  (start-ping))
