@@ -1,11 +1,3 @@
-services: 
-
-  # TODO have this consistent with the server config 
-  base_url: http://127.0.0.1:8888
-
-  dispatcher:
-    base_url: "http://127.0.0.1:8882/cider-ci/dispatcher"
-
 nrepl: 
   port: 7883
   bind: "127.0.0.1"
@@ -16,13 +8,11 @@ http:
   port: 8883
   ssl-port: 8443
 
-
 name: DemoExecutor
 
 basic_auth: 
   username: DemoExecutor 
   password: 5cfc3c91599a118ec0c67a6f2c15e7456cea71fa 
-
 
 reporter: 
   max_retries: 1

@@ -44,49 +44,23 @@
 (defn -main [& args]
   (with/logging 
     (logging/info "starting -main " args)
-    (config/initialize ["./config/config_default.yml" "./config/config.yml"])
+    (config/initialize)
     (let [conf (config/get-config)]
       (logging/info conf)
-
       (traits/initialize)
-
       (nrepl/initialize (-> conf  :nrepl ))
-
       (http/initialize {:basic_auth (-> conf :basic_auth)})
-
       (initialize)
-
-
       (git/initialize  {:sudo (-> conf :sudo)
                         :basic_auth (basic-auth)
                         :working_dir (working-dir)
                         :git_repos_dir (repos-dir)})
-
       (exec/initialize (select-keys conf [:exec :sudo]))
-
       (web/initialize {:basic_auth (basic-auth)
                        :http (-> conf :http)})
-
       (ping/initialize config/get-config)
-
       )))
 
-
-;  (read-config)
-;  (initialize)
-;  (nrepl/initialize (-> @conf :executor :nrepl ))
-;  
-;  (git/initialize  {:sudo (-> @conf :executor :sudo)
-;                    :basic_auth (basic-auth)
-;                    :working_dir (working-dir)
-;                    :git_repos_dir (repos-dir)})
-;  (exec/initialize (select-keys (-> @conf :executor) [:exec :sudo]))
-;  (trial/initialize)
-;  (reporter/initialize (-> @conf :executor :reporter))
-;  (web/initialize {:basic_auth (basic-auth)
-;                   :http (-> @conf :executor :http)})
-                      
-;                      )
 
 
 ;### Debug ####################################################################
