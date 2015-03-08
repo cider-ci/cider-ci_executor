@@ -42,7 +42,7 @@
   (try 
     (let [trial-parameters  (clojure.walk/keywordize-keys (:json-params request))]
       (when-not (:trial_id trial-parameters) (throw (IllegalStateException. ":trial_id parameter must be present")))
-      (when-not (:patch_url trial-parameters) (throw (IllegalStateException. ":patch_url parameter must be present")))
+      (when-not (:patch_path trial-parameters) (throw (IllegalStateException. ":patch_path parameter must be present")))
       (future (trial/execute trial-parameters))
       {:status 204})
     (catch Exception e
@@ -62,7 +62,6 @@
      :headers {"Content-Type" "application/json"}
      :body (json/write-str trial)}
     {:status 404}))
-
 
 
 ;### Routing ##################################################################

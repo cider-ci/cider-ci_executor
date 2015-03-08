@@ -17,6 +17,7 @@
     [cider-ci.utils.daemon :as daemon]
     [cider-ci.utils.debug :as debug]
     [cider-ci.utils.exception :as exception]
+    [cider-ci.utils.http :refer [build-server-url]]
     [cider-ci.utils.with :as with]
     [clj-commons-exec :as commons-exec]
     [clj-logging-config.log4j :as logging-config]
@@ -36,7 +37,7 @@
   (fn [params]
     (logging/debug "invoke anonymous update-sender" [params])
     (with/logging
-      (let [url (:patch_url params)
+      (let [url (build-server-url (:patch_path params))
             fun (fn [agent-state]
                   (with/logging
                     (let [res (reporter/patch-as-json-with-retries url params)]
@@ -48,7 +49,7 @@
   "Sends just the patch-params" 
   [report-agent params patch-params]
   ((create-update-sender-via-agent report-agent) 
-   (conj (select-keys params [:patch_url])
+   (conj (select-keys params [:patch_path])
          patch-params)))
 
 
@@ -132,11 +133,11 @@
 
           (attachments/put working-dir 
                            (:trial_attachments @params-atom) 
-                           (:trial_attachments_url @params-atom))
+                           (build-server-url (:trial_attachments_path @params-atom)))
 
           (attachments/put working-dir 
                            (:tree_attachments @params-atom) 
-                           (:tree_attachments_url @params-atom))
+                           (build-server-url (:tree_attachments_path @params-atom)))
 
           (let [final-state (if (every? (fn [script-atom] 
                                           (= "passed" (:state @script-atom))) 

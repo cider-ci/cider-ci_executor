@@ -8,7 +8,7 @@
     [cider-ci.ex.traits :as traits]
     [cider-ci.utils.daemon :as daemon]
     [cider-ci.utils.debug :as debug]
-    [cider-ci.utils.http :as http]
+    [cider-ci.utils.http :as http :refer [build-service-url]]
     [cider-ci.utils.map :refer [deep-merge]]
     [clj-yaml.core :as yaml]
     [clojure.java.io :as io]
@@ -22,7 +22,7 @@
 (defn ping []
   (try 
     (let [config (get-config)
-          url (str (-> config :services :dispatcher :base_url) "/ping")
+          url (build-service-url :dispatcher "/ping")
           traits (into [] (traits/get-traits))
           data {:traits traits}
           ]

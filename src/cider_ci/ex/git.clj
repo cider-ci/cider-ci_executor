@@ -9,17 +9,14 @@
   (:require 
     [cider-ci.utils.debug :as debug]
     [cider-ci.utils.exception :as exception]
+    [cider-ci.utils.http :refer [build-server-url]]
     [cider-ci.utils.system :as system]
     [clj-logging-config.log4j :as logging-config]
+    [clj-time.core :as time]
     [clojure.pprint :as pprint]
     [clojure.string :as string]
     [clojure.tools.logging :as logging]
-    [clj-time.core :as time]
     ))
-
-  ;(logging-config/set-logger! :level :debug)
-  ;(logging-config/set-logger! :level :info)
-
 
 (defonce conf (atom {}))
 
@@ -147,7 +144,7 @@
   (let [working-dir-id (:trial_id params)
         commit-id (:git_commit_id params)
         repository-id (:repository_id params)
-        repository-url (:git_url params)]
+        repository-url (build-server-url (:git_path params))]
     (when (clojure.string/blank? working-dir-id)
       (throw (java.lang.IllegalArgumentException. 
                "Invalid arguments for prepare-and-create-working-dir, missing :trial_id")))
