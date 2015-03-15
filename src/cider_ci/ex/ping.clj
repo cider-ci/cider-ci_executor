@@ -17,6 +17,11 @@
     ))
 
 
+;Runtime.getRuntime().availableProcessors();
+;(.availableProcessors(Runtime/getRuntime))
+
+
+
 (defn ^:dynamic get-config [] {})
 
 (defn ping []
@@ -24,8 +29,10 @@
     (let [config (get-config)
           url (build-service-url :dispatcher "/ping")
           traits (into [] (traits/get-traits))
-          data {:traits traits}
-          ]
+          max-load (or (:max_load config) 
+                       (.availableProcessors(Runtime/getRuntime)))
+          data {:traits traits
+                :max_load max-load}]
       (http/post url {:body (json/write-str data)})
       (Thread/sleep (* 1000 3)))
     (catch Exception e 
