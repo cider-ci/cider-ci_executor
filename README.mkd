@@ -1,7 +1,7 @@
 Cider-CI Executor
 ==================
 
-Part of [Cider-CI](https://github.com/DrTom/cider-ci). 
+Part of [Cider-CI](https://github.com/cider-ci/cider-ci). 
 
 License and copyright
 ---------------------
