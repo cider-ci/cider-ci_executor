@@ -10,10 +10,12 @@
   :dependencies [
                  [cider-ci/clj-auth "2.2.2"]
                  [cider-ci/clj-utils "2.12.0"]
-                 [org.clojure/tools.nrepl "0.2.7"]
+                 [clojure-ini "0.0.2"] 
+                 [drtom/clj-uuid "0.0.8"]
                  [me.raynes/fs "1.4.6"]
                  [org.clojars.hozumi/clj-commons-exec "1.2.0"]
                  [org.clojure/algo.generic "0.1.2"]
+                 [org.clojure/tools.nrepl "0.2.8"]
                  ]
   :source-paths ["src"]
   :profiles {:dev 

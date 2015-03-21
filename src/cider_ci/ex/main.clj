@@ -11,7 +11,6 @@
     [cider-ci.ex.exec :as exec]
     [cider-ci.utils.config :as config]
     [cider-ci.ex.traits :as traits]
-    [cider-ci.ex.git :as git]
     [cider-ci.ex.ping :as ping]
     [cider-ci.ex.reporter :as reporter]
     [cider-ci.ex.trial :as trial]
@@ -51,10 +50,6 @@
       (nrepl/initialize (-> conf  :nrepl ))
       (http/initialize {:basic_auth (-> conf :basic_auth)})
       (initialize)
-      (git/initialize  {:sudo (-> conf :sudo)
-                        :basic_auth (basic-auth)
-                        :working_dir (working-dir)
-                        :git_repos_dir (repos-dir)})
       (exec/initialize (select-keys conf [:exec :sudo]))
       (web/initialize {:basic_auth (basic-auth)
                        :http (-> conf :http)})
