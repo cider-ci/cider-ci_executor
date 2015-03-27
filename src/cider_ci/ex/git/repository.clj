@@ -9,6 +9,7 @@
   (:require 
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.debug :as debug]
+    [cider-ci.utils.fs :as ci-fs]
     [cider-ci.utils.exception :as exception]
     [cider-ci.utils.http :refer [build-server-url]]
     [cider-ci.utils.system :as system]
@@ -22,13 +23,9 @@
     ))
 
 
-(defn- path-save-url [url]
-  (str (string/replace url #"\W+" "-")
-       "_"
-       (clj-uuid/v5 clj-uuid/+null+ url)))
-
 (defn- canonical-repository-path [repository-url]
-  (str (:git_repos_dir (get-config)) (File/separator) (path-save-url repository-url)))
+  (str (:git_repos_dir (get-config)) (File/separator) 
+       (ci-fs/path-proof repository-url)))
 
 ;### Agents ###################################################################
 
