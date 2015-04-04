@@ -68,7 +68,7 @@
                                                           {:name script-name}
                                                           (select-keys @params-atom
                                                                        [:environment_variables 
-                                                                        :execution_id 
+                                                                        :job_id 
                                                                         :trial_id 
                                                                         :working_dir])))]))
                           (into {}))]

@@ -116,7 +116,7 @@
       (set-params-for-execption params e))))
 
 ; TODO debug timeout & watchdog
-; (exec-script-for-params {:execution_id "b8a70909-8e33-4128-bfd9-f37a9b33f5d7", :interpreter nil, :trial_id "0ccbd36e-ede3-419c-b2cc-669b697ba9e8", :name "main", :type "main", :working_dir "./tmp", :ports {}, :id "8c8f3922-7ad1-40b6-bb5a-a8c35ea53bca", :order 5, :timeout 1, :environment_variables {:cider_ci_trial_id "0ccbd36e-ede3-419c-b2cc-669b697ba9e8", :cider_ci_task_id "893a6c93-5642-49bf-bde0-f1c5dce2b368", :cider_ci_execution_id "b8a70909-8e33-4128-bfd9-f37a9b33f5d7", :the_answer 42}, :body "sleep 5 && echo 'done'"})
+; (exec-script-for-params {:job_id "b8a70909-8e33-4128-bfd9-f37a9b33f5d7", :interpreter nil, :trial_id "0ccbd36e-ede3-419c-b2cc-669b697ba9e8", :name "main", :type "main", :working_dir "./tmp", :ports {}, :id "8c8f3922-7ad1-40b6-bb5a-a8c35ea53bca", :order 5, :timeout 1, :environment_variables {:cider_ci_trial_id "0ccbd36e-ede3-419c-b2cc-669b697ba9e8", :cider_ci_task_id "893a6c93-5642-49bf-bde0-f1c5dce2b368", :cider_ci_job_id "b8a70909-8e33-4128-bfd9-f37a9b33f5d7", :the_answer 42}, :body "sleep 5 && echo 'done'"})
 
 ;### Service TODO test ########################################################
 (defn start-service-process [params]

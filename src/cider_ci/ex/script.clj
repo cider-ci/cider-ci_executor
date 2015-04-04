@@ -43,7 +43,7 @@
                              :started_at :finished_at])})))))
 
 (defn memoized-executor-exec [script]
-  (let [my-agent (script-exec-agent (:execution_id script))]
+  (let [my-agent (script-exec-agent (:job_id script))]
     (send-off my-agent use-memoized-or-execute script)
     (await my-agent)
     (@my-agent (:name script))))
@@ -90,7 +90,7 @@
                       "clanup_executor" (do
                                           (logging/warn "TODO store and process cleanup-executor")
                                           {:state "passed" 
-                                           :stdout "Execution is deferred and might not be carried out at all."} )
+                                           :stdout "Job is deferred and might not be carried out at all."} )
 
                       "post_process" (exec/exec-script-for-params script)
 
