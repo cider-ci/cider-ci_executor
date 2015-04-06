@@ -41,7 +41,7 @@
   (.mkdir (File. (repos-dir))))
                     
 (defn -main [& args]
-  (with/logging 
+  (with/log-error 
     (logging/info "starting -main " args)
     (config/initialize)
     (let [conf (config/get-config)]

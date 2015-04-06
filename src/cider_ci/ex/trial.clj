@@ -36,10 +36,10 @@
 (defn create-update-sender-via-agent [report-agent]
   (fn [params]
     (logging/debug "invoke anonymous update-sender" [params])
-    (with/logging
+    (with/log-error
       (let [url (build-server-url (:patch_path params))
             fun (fn [agent-state]
-                  (with/logging
+                  (with/log-error
                     (let [res (reporter/patch-as-json-with-retries url params)]
                       (conj agent-state params))))]
         (logging/debug "sending report off" {:url url})

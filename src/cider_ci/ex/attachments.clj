@@ -24,7 +24,7 @@
     ))
 
 (defn put-file [file abs-working-dir base-url content-type]
-  (with/logging
+  (with/log-error
     (let [relative (path-post-fix file abs-working-dir) 
           url (str base-url relative)]
       (logging/debug "putting attachment" 
