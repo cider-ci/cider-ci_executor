@@ -111,6 +111,22 @@
            working-dir) 
     working-dir))
 
+(defn- occupy-and-insert-ports [trial]
+  "Occupies free ports according to the :ports directive, 
+  adds the corresponding :ports value to each script and 
+  also returns the ports."
+  (let [params-atom (:params-atom trial)
+        ports (into {} (map (fn [[port-name port-params]] 
+                              [port-name (port-provider/occupy-port 
+                                           (or (:inet_address port-params) "localhost") 
+                                           (:min port-params) 
+                                           (:max port-params))])
+                            (:ports @params-atom)))
+        scripts-atoms (:scripts @params-atom)]
+    (doseq [[_ script-atom] scripts-atoms]
+      (swap! script-atom #(conj %1 {:ports %2}) ports))
+    ports))
+
 ;#### execute #################################################################
 (defn execute [params] 
   (logging/info execute [params])
@@ -120,22 +136,13 @@
         params-atom (:params-atom trial)]
     (try 
       (let [working-dir (create-and-insert-working-dir trial)
-            scripts-atoms (prepare-and-insert-scripts  params-atom)
-            ports (into {} (map (fn [[port-name port-params]] 
-                                  [port-name (port-provider/occupy-port 
-                                               (or (:inet_address port-params) "localhost") 
-                                               (:min port-params) 
-                                               (:max port-params))])
-                                (:ports @params-atom)))]
+            scripts-atoms (prepare-and-insert-scripts params-atom)
+            ports (occupy-and-insert-ports trial)]
         (try 
 
           (set-and-send-start-params params-atom report-agent)
 
-          ; inject the ports into the scripts
-          (doseq [script-atom scripts-atoms]
-            (swap! script-atom #(conj %1 {:ports %2}) ports))
-
-          (script/process scripts-atoms  nil)
+          (script/process scripts-atoms nil)
 
           (attachments/put working-dir 
                            (:trial_attachments @params-atom) 
