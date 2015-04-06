@@ -98,6 +98,18 @@
            params id)
     (@trials-atom id)))
 
+;#### stuff ###################################################################
+
+(defn- create-and-insert-working-dir [trial]
+  "Creates a working dir (populated with the checked out git repo), 
+  adds the :working_dir key to the params-atom sets the corresponding
+  value and also returns this value"
+  (let [params-atom (:params-atom trial)
+        working-dir (git/prepare-and-create-working-dir @params-atom)]
+    (swap! params-atom 
+           #(assoc %1 :working_dir %2)
+           working-dir) 
+    working-dir))
 
 ;#### execute #################################################################
 (defn execute [params] 
@@ -107,9 +119,7 @@
         report-agent (:report-agent trial)
         params-atom (:params-atom trial)]
     (try 
-      (let [
-            working-dir (git/prepare-and-create-working-dir params)
-            _ (swap! params-atom #(conj %1 {:working_dir %2}) working-dir) 
+      (let [working-dir (create-and-insert-working-dir trial)
             scripts-atoms (prepare-and-insert-scripts  params-atom)
             ports (into {} (map (fn [[port-name port-params]] 
                                   [port-name (port-provider/occupy-port 
@@ -173,9 +183,9 @@
 
 
 ;### Debug ####################################################################
-;(debug/debug-ns *ns*)
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
+;(debug/debug-ns *ns*)
 
 
 
