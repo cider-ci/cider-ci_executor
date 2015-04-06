@@ -22,6 +22,8 @@ sudo: false
 
 working_dir: "./tmp/working-dir"
 
+working_dir_trial_retention_time_minutes: 10
+
 git_repos_dir: "./tmp/repository-dir"
 
 exec: {}

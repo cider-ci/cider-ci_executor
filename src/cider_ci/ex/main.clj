@@ -21,6 +21,7 @@
     [cider-ci.utils.nrepl :as nrepl]
     [cider-ci.utils.with :as with]
     [clojure.tools.logging :as logging]
+    [cider-ci.ex.trial.sweeper]
     ))
 
 
@@ -54,6 +55,7 @@
       (web/initialize {:basic_auth (basic-auth)
                        :http (-> conf :http)})
       (ping/initialize config/get-config)
+      (cider-ci.ex.trial.sweeper/initialize)
       )))
 
 

@@ -77,7 +77,7 @@
 
 ;#### manage trials ###########################################################
 (defonce ^:private trials-atom (atom {}))
-;(clojure.pprint/pprint trials-atom)
+
 (defn get-trials [] 
   "Retrieves the received and not yet discarded trials"
   (flatten (map (fn [t] [(:params-atom (second t))])
@@ -97,10 +97,6 @@
                                :report-agent (agent [] :error-mode :continue)}}))
            params id)
     (@trials-atom id)))
-
-(defn- delete-trial [id trial]
-  (when (= 0 (:exit @(commons-exec/sh ["rm" "-rf" (:working_dir trial)])))
-    (swap! trials-atom #(dissoc %1 %2) id)))
 
 
 ;#### execute #################################################################
@@ -171,42 +167,15 @@
     trial))
 
 
-;#### trials cleaner service ##################################################
-(defn clean-all-trails []
-  (doseq [[id trial] @trials-atom] 
-    (with/suppress-and-log-warn
-      (delete-trial id trial))))
-
-(defn clean-outdated-trials []
-  (doseq [[id trial] @trials-atom] 
-    (with/suppress-and-log-warn
-      (let [params @(:params-atom trial) 
-            timestamp (or (:finished_at params) (:started_at params))]
-        (when (> (time/in-minutes (time/interval timestamp (time/now))) 150)
-          (delete-trial id trial))))))
-
-(daemon/define "trial-sweeper" 
-  start-trial-sweeper 
-  stop-trial-sweeper 
-  1
-  (logging/debug "trial-sweeper")
-  (clean-outdated-trials))
-
 ;#### initialize ###############################################################
 (defn initialize []
-  (.addShutdownHook 
-    (Runtime/getRuntime)
-    (Thread. (fn [] 
-               (stop-trial-sweeper)
-               (clean-all-trails))))
-  (start-trial-sweeper))
+  )
 
 
 ;### Debug ####################################################################
 ;(debug/debug-ns *ns*)
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
-
 
 
 
