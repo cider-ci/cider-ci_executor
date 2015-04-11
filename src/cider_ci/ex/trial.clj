@@ -8,12 +8,12 @@
     )
   (:require
     [cider-ci.ex.attachments :as attachments]
-    [cider-ci.ex.exec :as exec]
     [cider-ci.ex.git :as git]
     [cider-ci.ex.port-provider :as port-provider]
     [cider-ci.ex.reporter :as reporter]
     [cider-ci.ex.result :as result]
-    [cider-ci.ex.script :as script]
+    [cider-ci.ex.scripts.processor]
+    [cider-ci.ex.trial.helper :refer :all]
     [cider-ci.utils.daemon :as daemon]
     [cider-ci.utils.debug :as debug]
     [cider-ci.utils.exception :as exception]
@@ -54,29 +54,30 @@
 
 
 ;#### prepare trial ###########################################################
-(defn- set-and-send-start-params [params-atom report-agent]
-  (swap! params-atom (fn [params] (conj params {:state "executing"}))) 
-  (send-trial-patch report-agent @params-atom (select-keys @params-atom [:state :started_at])))
+(defn- set-and-send-start-params [trial] 
+  (let [params-atom (get-params-atom trial)
+        report-agent (:report-agent trial)]
+    (swap! params-atom (fn [params] (conj params {:state "executing"}))) 
+    (send-trial-patch report-agent @params-atom (select-keys @params-atom [:state :started_at])))
+  trial)
 
-(defn- prepare-and-insert-scripts [params-atom]
-  (let [initial-scripts (:scripts @params-atom)
+(defn- prepare-and-insert-scripts [trial]
+  (let [params-atom (get-params-atom trial)
+        initial-scripts (:scripts @params-atom)
         script-atoms (->> initial-scripts
-                          (into [])
-                          (sort-by #(or (-> % second :order) 0) )
-                          (map (fn [[script-name script-spec]]
-                                 [script-name (atom (conj script-spec
-                                                          {:name script-name}
-                                                          (select-keys @params-atom
-                                                                       [:environment_variables 
-                                                                        :job_id 
-                                                                        :trial_id 
-                                                                        :working_dir])))]))
-                          (into {}))]
-    (swap! params-atom #(conj %1 {:scripts %2}) script-atoms)
-    (map (fn [[k v]] v) script-atoms)))
+                          (map #(conj %
+                                      {:state "pending" }
+                                      (select-keys @params-atom
+                                                   [:environment_variables 
+                                                    :job_id 
+                                                    :trial_id 
+                                                    :working_dir])))
+                          (map atom))]
+    (swap! params-atom #(conj %1 {:scripts %2}) script-atoms))
+  trial)
 
 ;#### manage trials ###########################################################
-(defonce ^:private trials-atom (atom {}))
+(def ^:private trials-atom (atom {}))
 
 (defn get-trials [] 
   "Retrieves the received and not yet discarded trials"
@@ -88,9 +89,10 @@
     (:params-atom trial)))
 
 (defn- create-trial   
-  "Creates a new trial, stores it in trials under it's id and returns the trial"
+  "Creates a new trial, stores it in trials under its id and returns the trial"
   [params]
-  (let [id (:trial_id params)]
+  (let [id (:trial_id params)
+        params (assoc params :started_at (time/now))]
     (swap! trials-atom 
            (fn [trials params id]
              (conj trials {id {:params-atom (atom  params)
@@ -98,89 +100,102 @@
            params id)
     (@trials-atom id)))
 
+
+
 ;#### stuff ###################################################################
 
 (defn- create-and-insert-working-dir [trial]
   "Creates a working dir (populated with the checked out git repo), 
-  adds the :working_dir key to the params-atom sets the corresponding
-  value and also returns this value"
-  (let [params-atom (:params-atom trial)
+  adds the :working_dir key to the params-atom and sets the corresponding
+  value. Returns the (modified) trial)"
+  (let [params-atom (get-params-atom trial)
         working-dir (git/prepare-and-create-working-dir @params-atom)]
     (swap! params-atom 
            #(assoc %1 :working_dir %2)
-           working-dir) 
-    working-dir))
+           working-dir))
+  trial)
 
 (defn- occupy-and-insert-ports [trial]
   "Occupies free ports according to the :ports directive, 
   adds the corresponding :ports value to each script and 
   also returns the ports."
-  (let [params-atom (:params-atom trial)
+  (let [params-atom (get-params-atom trial)
         ports (into {} (map (fn [[port-name port-params]] 
                               [port-name (port-provider/occupy-port 
                                            (or (:inet_address port-params) "localhost") 
                                            (:min port-params) 
                                            (:max port-params))])
                             (:ports @params-atom)))
-        scripts-atoms (:scripts @params-atom)]
-    (doseq [[_ script-atom] scripts-atoms]
+        scripts (:scripts @params-atom)]
+    (doseq [script-atom scripts]
       (swap! script-atom #(conj %1 {:ports %2}) ports))
     ports))
+
+(defn put-attachments [trial]
+  (let [params-atom (get-params-atom trial)
+        working-dir (get-working-dir trial)]
+    (attachments/put working-dir 
+                     (:trial_attachments @params-atom) 
+                     (build-server-url (:trial_attachments_path @params-atom)))
+    (attachments/put working-dir 
+                     (:tree_attachments @params-atom) 
+                     (build-server-url (:tree_attachments_path @params-atom))))
+  trial)
+
+(defn set-final-state [trial]
+  (let [passed?  (->> (get-params-atom trial)
+                      :scripts
+                      (filter #(-> % deref :ignore_state not))
+                      (every? #(= "passed" (-> % deref :state))))
+        final-state (if passed? "passed" "failed")]
+    (swap! (get-params-atom trial)
+           #(conj %1 {:state %2, :finished_at (time/now)}) 
+           final-state))
+  trial)
+
+(defn set-result [trial]
+  (let [params-atom (get-params-atom trial)
+        working-dir (get-working-dir trial)]
+    (result/try-read-and-merge working-dir params-atom))
+  trial)
+
+(defn release-ports [ports]
+  (doseq [[_ port] ports]
+    (port-provider/release-port port)))
+
+(defn send-final-result [trial]
+  (let [ report-agent (:report-agent trial)]
+    ((create-update-sender-via-agent report-agent) @(get-params-atom trial)))
+  trial)
+
 
 ;#### execute #################################################################
 (defn execute [params] 
   (logging/info execute [params])
-  (let [started-at (time/now)
-        trial (create-trial (conj params {:started_at started-at}))
-        report-agent (:report-agent trial)
-        params-atom (:params-atom trial)]
-    (try 
-      (let [working-dir (create-and-insert-working-dir trial)
-            scripts-atoms (prepare-and-insert-scripts params-atom)
-            ports (occupy-and-insert-ports trial)]
-        (try 
-
-          (set-and-send-start-params params-atom report-agent)
-
-          (script/process scripts-atoms nil)
-
-          (attachments/put working-dir 
-                           (:trial_attachments @params-atom) 
-                           (build-server-url (:trial_attachments_path @params-atom)))
-
-          (attachments/put working-dir 
-                           (:tree_attachments @params-atom) 
-                           (build-server-url (:tree_attachments_path @params-atom)))
-
-          (let [final-state (if (every? (fn [script-atom] 
-                                          (= "passed" (:state @script-atom))) 
-                                        scripts-atoms) 
-                              "passed" 
-                              "failed")]
-
-            (swap! params-atom 
-                   #(conj %1 {:state %2, :finished_at (time/now)}) 
-                   final-state)
-
-            (result/try-read-and-merge working-dir params-atom)
-
-            ((create-update-sender-via-agent report-agent) @params-atom))
-
-          (finally 
-            (doseq [[_ port] ports]
-              (port-provider/release-port port))
-            trial)))
-
-      (catch Exception e
-        (let [e-str (exception/stringify e)]
-          (swap! params-atom (fn [params] 
-                               (conj params 
-                                     {:state "failed", 
-                                      :finished_at (time/now)
-                                      :error e-str })))
-          (logging/error e-str)
-          ((create-update-sender-via-agent report-agent) @params-atom)))
-      (finally trial))
+  (let [trial (create-trial params)]
+    (try (->> trial
+              create-and-insert-working-dir
+              prepare-and-insert-scripts)
+         (let [ports (occupy-and-insert-ports trial)]
+           (try (->> trial 
+                     set-and-send-start-params
+                     cider-ci.ex.scripts.processor/process
+                     put-attachments
+                     set-final-state
+                     set-result
+                     send-final-result)
+                (finally (release-ports ports)
+                         trial)))
+         (catch Exception e
+           (let [e-str (exception/stringify e)]
+             (swap! (get-params-atom trial) 
+                    (fn [params] (conj params 
+                                       {:state "failed", 
+                                        :finished_at (time/now)
+                                        :error e-str })))
+             (logging/error e-str)
+             (send-final-result trial)))
+         (finally trial))
     trial))
 
 
@@ -193,6 +208,3 @@
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
 ;(debug/debug-ns *ns*)
-
-
-

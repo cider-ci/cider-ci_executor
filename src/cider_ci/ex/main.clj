@@ -8,7 +8,6 @@
     [java.io File]
     )
   (:require 
-    [cider-ci.ex.exec :as exec]
     [cider-ci.utils.config :as config]
     [cider-ci.ex.traits :as traits]
     [cider-ci.ex.ping :as ping]
@@ -51,7 +50,6 @@
       (nrepl/initialize (-> conf  :nrepl ))
       (http/initialize {:basic_auth (-> conf :basic_auth)})
       (initialize)
-      (exec/initialize (select-keys conf [:exec :sudo]))
       (web/initialize {:basic_auth (basic-auth)
                        :http (-> conf :http)})
       (ping/initialize config/get-config)
