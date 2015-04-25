@@ -8,19 +8,20 @@
     [java.io File]
     )
   (:require 
-    [cider-ci.utils.config :as config]
-    [cider-ci.ex.traits :as traits]
     [cider-ci.ex.ping :as ping]
     [cider-ci.ex.reporter :as reporter]
+    [cider-ci.ex.traits :as traits]
     [cider-ci.ex.trial :as trial]
+    [cider-ci.ex.trial.sweeper]
     [cider-ci.ex.web :as web]
+    [cider-ci.utils.config :as config]
     [cider-ci.utils.config-loader :as config-loader]
-    [cider-ci.utils.debug :as debug]
     [cider-ci.utils.http :as http]
     [cider-ci.utils.nrepl :as nrepl]
-    [cider-ci.utils.with :as with]
     [clojure.tools.logging :as logging]
-    [cider-ci.ex.trial.sweeper]
+    [drtom.logbug.catcher :as catcher]
+    [drtom.logbug.debug :as debug]
+    [drtom.logbug.thrown]
     ))
 
 
@@ -41,7 +42,8 @@
   (.mkdir (File. (repos-dir))))
                     
 (defn -main [& args]
-  (with/log-error 
+  (catcher/wrap-with-log-error 
+    (drtom.logbug.thrown/reset-ns-filter-regex #".*cider-ci.*")
     (logging/info "starting -main " args)
     (config/initialize)
     (let [conf (config/get-config)]

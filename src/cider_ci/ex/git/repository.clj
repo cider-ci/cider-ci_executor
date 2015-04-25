@@ -8,9 +8,9 @@
     )
   (:require 
     [cider-ci.utils.config :as config :refer [get-config]]
-    [cider-ci.utils.debug :as debug]
+    [drtom.logbug.debug :as debug]
     [cider-ci.utils.fs :as ci-fs]
-    [cider-ci.utils.exception :as exception]
+    [drtom.logbug.thrown :as thrown]
     [cider-ci.utils.http :refer [build-server-url]]
     [cider-ci.utils.system :as system]
     [clj-logging-config.log4j :as logging-config]
@@ -95,7 +95,7 @@
                                       agent-state repository-url commit-id)
                                     :exception))
                     (catch Exception e
-                      (logging/warn (exception/stringify e))
+                      (logging/warn (thrown/stringify e))
                       (reset! res-atom (conj agent-state {:exception e})))
                     (finally @res-atom)))]
 
@@ -132,7 +132,7 @@
                                (dissoc :exception)
                                (assoc :last-successful-clone {:time (time/now) :working-dir working-dir})))
                    (catch Exception e
-                     (logging/warn (exception/stringify e))
+                     (logging/warn (thrown/stringify e))
                      (reset! res-atom (assoc agent-state :exception e)))
                    (finally @res-atom)))]
     (send-off repository-agent fun)

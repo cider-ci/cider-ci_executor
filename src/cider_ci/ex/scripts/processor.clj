@@ -7,16 +7,16 @@
     [cider-ci.ex.scripts.exec :as exec]
     [cider-ci.ex.scripts.helper :as scripts]
     [cider-ci.ex.trial.helper :as trial]
-    [cider-ci.utils.debug :as debug]
+    [drtom.logbug.debug :as debug]
     [cider-ci.utils.map :as map]
-    [cider-ci.utils.with :as with]
+    [drtom.logbug.catcher :as catcher]
     [clj-commons-exec :as commons-exec]
     [clojure.tools.logging :as logging]
     ))
 
 
 (defn- dependency-fulfilled? [dependency script-a trial]
-  (with/log-error
+  (catcher/wrap-with-log-error
     (let [name (:name dependency)
           script (trial/get-script-by-name name trial)
           state (:state script)]
@@ -24,13 +24,13 @@
       (some #{state} (:states dependency)))))
 
 (defn- dependencies-fulfilled? [script-a trial]
-  (with/log-error
+  (catcher/wrap-with-log-error
     (every?  
       #(dependency-fulfilled? % script-a trial) 
       (-> @script-a :dependencies map/convert-to-array))))
 
 (defn- scripts-atoms-ready-for-execution [trial]
-  (with/log-error
+  (catcher/wrap-with-log-error
     (->> (trial/get-scripts-atoms trial)
          (filter #(-> % deref scripts/pending? )) 
          (filter #(dependencies-fulfilled? % trial)))))
@@ -53,7 +53,7 @@
    (trigger trial "unknown origin"))
   ([trial msg]
    (logging/info "start trigger: " msg)
-   (with/log-error
+   (catcher/wrap-with-log-error
      (->> (scripts-atoms-ready-for-execution trial)
           (filter exec?) ; avoid potential race condition here
           (map #(future (exec/execute %)

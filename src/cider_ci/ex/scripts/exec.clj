@@ -13,10 +13,10 @@
     [clojure.string :as string]
     [clj-commons-exec :as commons-exec]
     [clj-logging-config.log4j :as logging-config]
-    [cider-ci.utils.debug :as debug]
+    [drtom.logbug.debug :as debug]
     [clojure.tools.logging :as logging]
     [clj-time.core :as time]
-    [cider-ci.utils.exception :as exception]
+    [drtom.logbug.thrown :as thrown]
 
     ))
 
@@ -101,7 +101,7 @@
    })
 
 (defn- set-script-atom-for-execption [script-atom e]
-  (let [e-str (exception/stringify e)]
+  (let [e-str (thrown/stringify e)]
     (logging/warn e-str)
     (swap! script-atom
            (fn [params e-str]

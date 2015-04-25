@@ -10,8 +10,8 @@
     )
   (:require 
     [cider-ci.utils.config :as config :refer [get-config]]
-    [cider-ci.utils.debug :as debug]
-    [cider-ci.utils.with :as with]
+    [drtom.logbug.debug :as debug]
+    [drtom.logbug.catcher :as catcher]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.coerce :as time-coerce]
     [clj-time.core :as time]
@@ -51,7 +51,7 @@
         access-times (map file-last-access-time files)
         access-times-millis (map #(.toMillis %) access-times)]
     (try ; safe guard, if something is weired with the directory structure
-         (with/log-error
+         (catcher/wrap-with-log-error
            (time-coerce/from-long
              (if (>= (count files) 1)
                (reduce max access-times-millis)

@@ -9,8 +9,8 @@
     [org.apache.commons.exec ExecuteWatchdog]
     )
   (:require
-    [cider-ci.utils.debug :as debug]
-    [cider-ci.utils.with :as with]
+    [drtom.logbug.debug :as debug]
+    [drtom.logbug.catcher :as catcher]
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
     [me.raynes.fs :as fs]
@@ -27,7 +27,7 @@
     (str "/result.json")))
 
 (defn try-read-and-merge [working-dir params-atom]
-  (with/suppress-and-log-debug  
+  (catcher/wrap-with-suppress-and-log-debug  
     (let [json-data (-> (file-path-to-result working-dir)
                         slurp
                         json/read-str)]

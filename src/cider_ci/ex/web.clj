@@ -5,12 +5,11 @@
 (ns cider-ci.ex.web
   (:require 
     [cider-ci.auth.core :as auth]
-    [cider-ci.utils.routing :as routing]
     [cider-ci.auth.http-basic :as http-basic]
     [cider-ci.ex.certificate :as certificate]
     [cider-ci.ex.trial :as trial]
-    [cider-ci.utils.debug :as debug]
     [cider-ci.utils.http :as http]
+    [cider-ci.utils.routing :as routing]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clojure.data :as data]
@@ -19,6 +18,8 @@
     [clojure.tools.logging :as logging]
     [compojure.core :as cpj]
     [compojure.handler]
+    [drtom.logbug.debug :as debug]
+    [drtom.logbug.ring :refer [wrap-handler-with-logging]]
     [ring.adapter.jetty :as jetty]
     [ring.middleware.json]
     ))
@@ -78,14 +79,14 @@
 
 (defn build-main-handler [context]
   ( -> (compojure.handler/api (build-routes context))
-       (routing/wrap-debug-logging 'cider-ci.ex.web)
-       (routing/wrap-debug-logging 'cider-ci.ex.web)
+       (wrap-handler-with-logging 'cider-ci.ex.web)
+       (wrap-handler-with-logging 'cider-ci.ex.web)
        (ring.middleware.json/wrap-json-params)
-       (routing/wrap-debug-logging 'cider-ci.ex.web)
+       (wrap-handler-with-logging 'cider-ci.ex.web)
        (auth/wrap-authenticate-and-authorize-service)
-       (routing/wrap-debug-logging 'cider-ci.ex.web)
+       (wrap-handler-with-logging 'cider-ci.ex.web)
        (http-basic/wrap {:service true}) ; TODO, workaround, only check pw used both ways
-       (routing/wrap-debug-logging 'cider-ci.ex.web)
+       (wrap-handler-with-logging 'cider-ci.ex.web)
        (routing/wrap-log-exception)
        ))
 

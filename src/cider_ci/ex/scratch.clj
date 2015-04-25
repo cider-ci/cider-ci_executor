@@ -8,6 +8,6 @@
     [clj-time.core :as time]
     [clojure.string :as string]
     [clojure.tools.logging :as logging]
-    [cider-ci.utils.debug :as debug]
+    [drtom.logbug.debug :as debug]
     ))
 

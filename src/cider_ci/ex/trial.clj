@@ -15,10 +15,10 @@
     [cider-ci.ex.scripts.processor]
     [cider-ci.ex.trial.helper :refer :all]
     [cider-ci.utils.daemon :as daemon]
-    [cider-ci.utils.debug :as debug]
-    [cider-ci.utils.exception :as exception]
+    [drtom.logbug.debug :as debug]
+    [drtom.logbug.thrown :as thrown]
     [cider-ci.utils.http :refer [build-server-url]]
-    [cider-ci.utils.with :as with]
+    [drtom.logbug.catcher :as catcher]
     [clj-commons-exec :as commons-exec]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
@@ -36,10 +36,10 @@
 (defn create-update-sender-via-agent [report-agent]
   (fn [params]
     (logging/debug "invoke anonymous update-sender" [params])
-    (with/log-error
+    (catcher/wrap-with-log-error
       (let [url (build-server-url (:patch_path params))
             fun (fn [agent-state]
-                  (with/log-error
+                  (catcher/wrap-with-log-error
                     (let [res (reporter/patch-as-json-with-retries url params)]
                       (conj agent-state params))))]
         (logging/debug "sending report off" {:url url})
@@ -187,7 +187,7 @@
                 (finally (release-ports ports)
                          trial)))
          (catch Exception e
-           (let [e-str (exception/stringify e)]
+           (let [e-str (thrown/stringify e)]
              (swap! (get-params-atom trial) 
                     (fn [params] (conj params 
                                        {:state "failed", 

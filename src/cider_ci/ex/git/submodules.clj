@@ -6,7 +6,7 @@
   (:require 
     [cider-ci.ex.git.repository :as repository]
     [cider-ci.utils.config :as config :refer [get-config]]
-    [cider-ci.utils.debug :as debug]
+    [drtom.logbug.debug :as debug]
     [cider-ci.utils.system :as system]
     [clj-logging-config.log4j :as logging-config]
     [clojure-ini.core :as ini]

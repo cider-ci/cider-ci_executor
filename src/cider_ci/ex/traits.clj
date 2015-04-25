@@ -8,7 +8,7 @@
     [clj-yaml.core :as yaml]
     [cider-ci.utils.config-loader :as config-loader]
     [cider-ci.utils.daemon :as daemon]
-    [cider-ci.utils.debug :as debug]
+    [drtom.logbug.debug :as debug]
     [cider-ci.utils.map :refer [deep-merge]]
     [clojure.string :refer [blank? lower-case split trim]]
     [clojure.set :refer [union]]

@@ -7,8 +7,8 @@
     [cider-ci.ex.fs.last-access-time :refer [last-access-time]]
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.daemon :as daemon]
-    [cider-ci.utils.debug :as debug]
-    [cider-ci.utils.with :as with]
+    [drtom.logbug.debug :as debug]
+    [drtom.logbug.catcher :as catcher]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clojure.java.io :refer [file]]
@@ -46,7 +46,7 @@
        (filter to-be-deleted?)))
 
 (defn- delete [dir]
-  (with/suppress-and-log-warn 
+  (catcher/wrap-with-suppress-and-log-warn 
     (clj-fs/delete-dir dir)))
 
 (defn- delete-out-of-date-trial-dirs []

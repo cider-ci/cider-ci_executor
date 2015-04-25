@@ -4,9 +4,9 @@
 
 (ns cider-ci.ex.attachments
   (:require 
-    [cider-ci.utils.debug :as debug]
+    [drtom.logbug.debug :as debug]
     [cider-ci.utils.http :as http]
-    [cider-ci.utils.with :as with]
+    [drtom.logbug.catcher :as catcher]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clj-time.format :as time-format]
@@ -24,7 +24,7 @@
     ))
 
 (defn put-file [file abs-working-dir base-url content-type]
-  (with/log-error
+  (catcher/wrap-with-log-error
     (let [relative (path-post-fix file abs-working-dir) 
           url (str base-url relative)]
       (logging/debug "putting attachment" 

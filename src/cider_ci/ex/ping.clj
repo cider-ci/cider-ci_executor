@@ -7,7 +7,7 @@
   (:require 
     [cider-ci.ex.traits :as traits]
     [cider-ci.utils.daemon :as daemon]
-    [cider-ci.utils.debug :as debug]
+    [drtom.logbug.debug :as debug]
     [cider-ci.utils.http :as http :refer [build-service-url]]
     [cider-ci.utils.map :refer [deep-merge]]
     [clj-yaml.core :as yaml]

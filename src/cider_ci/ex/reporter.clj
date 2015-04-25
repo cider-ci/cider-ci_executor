@@ -1,7 +1,7 @@
 (ns cider-ci.ex.reporter
   (:require 
     [cider-ci.ex.json]
-    [cider-ci.utils.debug :as debug]
+    [drtom.logbug.debug :as debug]
     [cider-ci.utils.http :as http]
     [cider-ci.utils.map :refer [deep-merge]]
     [clj-logging-config.log4j :as logging-config]
