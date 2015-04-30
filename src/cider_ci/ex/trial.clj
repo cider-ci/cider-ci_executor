@@ -144,9 +144,15 @@
 
 (defn set-final-state [trial]
   (let [passed?  (->> (get-params-atom trial)
+                      (debug/identity-with-logging 'cider-ci.ex.trial)
+                      deref
+                      (debug/identity-with-logging 'cider-ci.ex.trial)
                       :scripts
+                      (into [])(debug/identity-with-logging 'cider-ci.ex.trial)
                       (filter #(-> % deref :ignore_state not))
-                      (every? #(= "passed" (-> % deref :state))))
+                      (into [])(debug/identity-with-logging 'cider-ci.ex.trial)
+                      (every? #(= "passed" (-> % deref :state)))
+                      (debug/identity-with-logging 'cider-ci.ex.trial))
         final-state (if passed? "passed" "failed")]
     (swap! (get-params-atom trial)
            #(conj %1 {:state %2, :finished_at (time/now)}) 
