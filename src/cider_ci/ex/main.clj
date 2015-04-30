@@ -43,7 +43,7 @@
                     
 (defn -main [& args]
   (catcher/wrap-with-log-error 
-    (drtom.logbug.thrown/reset-ns-filter-regex #".*cider-ci.*")
+    (drtom.logbug.thrown/reset-ns-filter-regex #".*cider.ci.*")
     (logging/info "starting -main " args)
     (config/initialize)
     (let [conf (config/get-config)]

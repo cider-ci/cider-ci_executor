@@ -50,7 +50,7 @@
   (system/exec-with-success-or-throw
     ["git" "clone" "--mirror" url path] 
     {:add-env {"GIT_SSL_NO_VERIFY" "1"}
-     :watchdog (* 3 60 1000)}))
+     :watchdog (* 60 60 1000)}))
 
 (defn- repository-includes-commit? [path commit-id]
   "Returns false if there is an exeception!" 
