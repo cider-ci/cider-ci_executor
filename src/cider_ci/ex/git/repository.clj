@@ -23,9 +23,14 @@
     ))
 
 
+;### Repo path ################################################################
+
 (defn- canonical-repository-path [repository-url]
-  (str (:git_repos_dir (get-config)) (File/separator) 
-       (ci-fs/path-proof repository-url)))
+  (let [absolute-repos-path (fs/absolute (:git_repos_dir (get-config)))
+        path (str absolute-repos-path  (File/separator) 
+                  (ci-fs/path-proof repository-url))]
+    (assert (> (count path) (count (str absolute-repos-path))))
+    path))
 
 ;### Agents ###################################################################
 
@@ -35,11 +40,13 @@
   (or (@repository-agents-atom repository-url)
       ((swap! repository-agents-atom 
               (fn [repository-agents repository-url]
-                (conj repository-agents 
-                      {repository-url
-                       (agent {:repository-url repository-url
-                               :repository-path (canonical-repository-path repository-url) } 
-                              :error-mode :continue)}))
+                (if (repository-agents repository-url)
+                  repository-agents
+                  (conj repository-agents 
+                        {repository-url
+                         (agent {:repository-url repository-url
+                                 :repository-path (canonical-repository-path repository-url) } 
+                                :error-mode :continue)})))
               repository-url) 
        repository-url)))
 
@@ -47,6 +54,7 @@
 ;### Core Git #################################################################
 
 (defn- create-mirror-clone [url path] 
+  (system/exec ["rm" "-rf" path])
   (system/exec-with-success-or-throw
     ["git" "clone" "--mirror" url path] 
     {:add-env {"GIT_SSL_NO_VERIFY" "1"}
