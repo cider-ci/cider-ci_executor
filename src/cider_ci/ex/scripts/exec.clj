@@ -1,23 +1,21 @@
 ; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software.
-
 (ns cider-ci.ex.scripts.exec
   (:import 
     [org.apache.commons.exec ExecuteWatchdog]
     [java.io File]
     )
-
   (:require 
     [cider-ci.utils.config :as config :refer [get-config]]
-    [clojure.string :as string]
     [clj-commons-exec :as commons-exec]
     [clj-logging-config.log4j :as logging-config]
-    [drtom.logbug.debug :as debug]
-    [clojure.tools.logging :as logging]
     [clj-time.core :as time]
+    [clojure.set :refer [difference union]]
+    [clojure.string :as string :refer [split trim]]
+    [clojure.tools.logging :as logging]
+    [drtom.logbug.debug :as debug]
     [drtom.logbug.thrown :as thrown]
-
     ))
 
 ; TODO us clj-fs or our fs ..
@@ -60,34 +58,94 @@
 (defn- interpreter [env_vars]
   (flatten ["sudo" "-u" (get-exec-user) env_vars  "-n" "-i"]))
 
-(defn- create-command-wrapper-file [working-dir script-file]
-  (let [command-wrapper-file (File/createTempFile "cider-ci_", ".command_wrapper")
-        script (str "cd '" working-dir "' && " (.getAbsolutePath script-file)) ]
-    (.deleteOnExit command-wrapper-file)
-    (spit command-wrapper-file script)
-    (.setExecutable command-wrapper-file true false)
-    (.getAbsolutePath command-wrapper-file)))
 
+;### termination ##############################################################
+; It seems not possible to guarantee that all subprocesses are killed.  The
+; default strategy is to rely on "Apache Commons Exec"  which sometimes works
+; but is unreliable in many cases, e.g. when the script starts in a new
+; sub-shell.  On Linux we recursively find all subprocesses via `ps`, see also
+; `ps axf -o user,pid,ppid,pgrp,args`, and then kill those. This works well
+; unless double forks are used which are nearly impossible to track with
+; reasonable effort. 
+
+(defn create-watchdog [timeout]
+  (case (System/getProperty "os.name")
+    "Linux" nil
+    (ExecuteWatchdog. (* 1000 timeout))))
+
+(defn get-child-pids [pids]
+  "This is known to work under linux. Due to the variations in ps it may not
+  work under other Unixes, certainly not under Mac OS X."
+  (try (-> (commons-exec/sh 
+             ["ps" "--no-headers" "-o" "pid" "--ppid" (clojure.string/join "," pids)])
+           deref
+           :out
+           trim
+           (split #"\n")
+           (#(map trim %))
+           set)
+       (catch Exception _
+         (set []))))
+
+(defn add-descendant-pids [pids]
+  (logging/debug 'add-descendant-pids pids)
+  (let [child-pids (get-child-pids pids)
+        result-pids (union pids child-pids)]
+    (logging/info {:pids pids :result-pids result-pids})
+    (if (= pids result-pids)
+      result-pids
+      (add-descendant-pids result-pids))))
+        
+(defn terminate-via-process-tree [exec-future script-atom]
+  (let [working-dir  (-> script-atom deref :working_dir) 
+        pid (-> (str working-dir "/._cider-ci.pid") slurp clojure.string/trim)
+        pids (add-descendant-pids #{pid})
+        descendant-pids (difference pids #{pid})]
+    (commons-exec/sh  
+      (concat ["kill" "-KILL"]
+              (into [] descendant-pids)))))
+
+(defn terminate [exec-future script-atom]
+  (case (System/getProperty "os.name")
+    "Linux" (terminate-via-process-tree exec-future script-atom) 
+    nil))
+
+(defn preper-terminate-script-prefix [working-dir]
+  (case (System/getProperty "os.name")
+    "Linux" (str "echo $$ > '" working-dir "/._cider-ci.pid' && ")
+    "Mac OS X" (str "echo $$ > '" working-dir "/._cider-ci.pid' && ")
+    ""))
+
+
+;##############################################################################
+
+(defn- create-command-wrapper-file [working-dir script-file]
+  (let [wrapper-file (doto (File/createTempFile "cider-ci_", ".command_wrapper")
+                       .deleteOnExit
+                       (.setExecutable true false)
+                       (spit  (str (preper-terminate-script-prefix working-dir) 
+                                   "cd '" working-dir "' " 
+                                   "&& " (.getAbsolutePath script-file))))]
+    (logging/info {:WRAPPER-FILE (.getAbsolutePath wrapper-file)})
+    (.getAbsolutePath wrapper-file)))
 
 (defn- command [script-file working-dir env-variables]
   (flatten (concat (interpreter (sudo-env env-variables)) 
                    [(create-command-wrapper-file working-dir script-file)])))
 
-
 (defn- commons-exec-sh [command env-variables watchdog]
   (commons-exec/sh 
     command 
-    {:env (conj {} (System/getenv) env-variables)
-     :watchdog watchdog}))
+    (conj {:env (conj {} (System/getenv) env-variables)}
+          (when watchdog
+            {:watchdog watchdog }))))
 
-
-(defn exec-future [params timeout-or-watchdog]
+(defn exec-sh [params timeout-or-watchdog]
   (let [env-variables (prepare-env-variables params)
         script-file (prepare-script-file (:body params))  
         command (command script-file (working-dir params) env-variables)]
     (logging/debug {:command command})
     (commons-exec-sh command env-variables timeout-or-watchdog)))
-
 
 (defn- get-final-parameters [exec-res]
   {:finished_at (time/now)
@@ -118,19 +176,29 @@
   (debug-recent-execs-push script-atom)
   (try (let [params @script-atom
              timeout (or (:timeout params) 200)
-             watchdog (ExecuteWatchdog. (* 1000 timeout))]
+             started-at (time/now)
+             watchdog (create-watchdog timeout)]
+         (logging/debug "TIMEOUT" timeout)
          (swap! script-atom 
-                (fn [params watchdog]
-                  (assoc params
-                         :started_at (time/now)
-                         :state "executing"
-                         :watchdog watchdog))
-                watchdog)
-         (let [exec-res @(exec-future params watchdog)]
+                (fn [params watchdog started-at]
+                  (conj params
+                        {:started_at started-at
+                         :state "executing"}
+                        (when watchdog
+                          {:watchdog watchdog})))
+                watchdog started-at)
+         (let [exec-future (exec-sh params watchdog)]
+           (loop []
+             (when (time/after? (time/now) 
+                                (time/plus started-at (time/seconds timeout)))
+               (terminate exec-future script-atom))
+             (when-not (realized? exec-future)
+               (Thread/sleep 500)
+               (recur)))
            (swap! script-atom
                   (fn [params res]
                     (conj params res))
-                  (get-final-parameters exec-res))))
+                  (get-final-parameters @exec-future))))
        (catch Exception e
          (set-script-atom-for-execption script-atom e))))
 
