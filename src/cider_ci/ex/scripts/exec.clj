@@ -28,7 +28,7 @@
   (->> (conj { }
              {:CIDER_CI_WORKING_DIR (working-dir params)} 
              (or (:ports params) {}) 
-             (or (:environment_variables params) {}))
+             (or (:environment-variables params) {}))
        (filter (fn [[k v]] (not= nil v))) 
        (map (fn [[k v]] [(name k) (str v)]))
        (map (fn [[k v]] [(string/upper-case k) v])) ; TODO,  remove this with Cider-CI version 3.0.0

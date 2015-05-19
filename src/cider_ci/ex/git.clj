@@ -40,7 +40,7 @@
                           fs/normalized
                           str)]
       (repository/serialized-clone-to-dir repository-url commit-id working-dir)
-      (when (-> params :git_options :submodules :clone)
+      (when (-> params :git-options :submodules :clone)
         (submodules/update working-dir))
       (when-let [user (:user (:sudo (get-config)))]
         (system/exec-with-success-or-throw ["chown" "-R" user working-dir]))

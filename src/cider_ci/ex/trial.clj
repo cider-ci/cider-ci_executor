@@ -68,7 +68,7 @@
                           (map #(conj %
                                       {:state "pending" }
                                       (select-keys @params-atom
-                                                   [:environment_variables 
+                                                   [:environment-variables 
                                                     :job_id 
                                                     :trial_id 
                                                     :working_dir])))
@@ -135,11 +135,11 @@
   (let [params-atom (get-params-atom trial)
         working-dir (get-working-dir trial)]
     (attachments/put working-dir 
-                     (:trial_attachments @params-atom) 
-                     (build-server-url (:trial_attachments_path @params-atom)))
+                     (:trial-attachments @params-atom) 
+                     (build-server-url (:trial-attachments-path @params-atom)))
     (attachments/put working-dir 
-                     (:tree_attachments @params-atom) 
-                     (build-server-url (:tree_attachments_path @params-atom))))
+                     (:tree-attachments @params-atom) 
+                     (build-server-url (:tree-attachments-path @params-atom))))
   trial)
 
 (defn set-final-state [trial]
@@ -149,7 +149,7 @@
                       (debug/identity-with-logging 'cider-ci.ex.trial)
                       :scripts
                       (into [])(debug/identity-with-logging 'cider-ci.ex.trial)
-                      (filter #(-> % deref :ignore_state not))
+                      (filter #(-> % deref :ignore-state not))
                       (into [])(debug/identity-with-logging 'cider-ci.ex.trial)
                       (every? #(= "passed" (-> % deref :state)))
                       (debug/identity-with-logging 'cider-ci.ex.trial))
