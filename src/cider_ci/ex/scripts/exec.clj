@@ -8,6 +8,7 @@
     )
   (:require 
     [cider-ci.utils.config :as config :refer [get-config]]
+    [cider-ci.utils.fs :as ci-fs]
     [clj-commons-exec :as commons-exec]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
@@ -35,9 +36,9 @@
        (into {})))
 
 
-; TODO use doto ...
-(defn- prepare-script-file [script]
-  (let [script-file (File/createTempFile "cider-ci_", ".script")]
+(defn- prepare-script-file [params]
+  (let [script (:body params)
+        script-file (File/createTempFile "cider-ci_" ".script")]
     (.deleteOnExit script-file)
     (spit script-file script)
     (.setExecutable script-file true false)
@@ -68,14 +69,12 @@
 ; unless double forks are used which are nearly impossible to track with
 ; reasonable effort. 
 
-(defn create-watchdog [timeout]
-  (case (System/getProperty "os.name")
-    "Linux" nil
-    (ExecuteWatchdog. (* 1000 timeout))))
+(defn create-watchdog []
+  (ExecuteWatchdog. (ExecuteWatchdog/INFINITE_TIMEOUT) ))
 
-(defn get-child-pids [pids]
-  "This is known to work under linux. Due to the variations in ps it may not
-  work under other Unixes, certainly not under Mac OS X."
+(defn get-child-pids-linux [pids]
+  ; This is known to work under linux. Due to the variations in ps it may not
+  ; work under other Unixes, certainly not under Mac OS X.
   (try (-> (commons-exec/sh 
              ["ps" "--no-headers" "-o" "pid" "--ppid" (clojure.string/join "," pids)])
            deref
@@ -87,65 +86,90 @@
        (catch Exception _
          (set []))))
 
+(defn get-child-pids [pids]
+  ; This may work with all unixes; it works with Mac OS X and linux. 
+  (try (->> (-> (commons-exec/sh ["ps" "x" "-o" "pid ppid"])
+                deref
+                :out 
+                trim
+                (split #"\n")
+                (#(map trim %))
+                rest)
+            (map #(split % #"\s+"))
+            (filter #(some (-> % second list set) pids))
+            (map first)
+            set)
+       (catch Exception _
+         (set []))))
+
 (defn add-descendant-pids [pids]
   (logging/debug 'add-descendant-pids pids)
   (let [child-pids (get-child-pids pids)
         result-pids (union pids child-pids)]
-    (logging/info {:pids pids :result-pids result-pids})
+    (logging/debug {:pids pids :result-pids result-pids})
     (if (= pids result-pids)
       result-pids
       (add-descendant-pids result-pids))))
         
+
+(defn pid-file-path [params]
+  (let [working-dir  (-> params :working_dir)
+        script-name (-> params :name)]
+    (str working-dir (File/separator) "._cider-ci_" (ci-fs/path-proof script-name) ".pid")))
+
 (defn terminate-via-process-tree [exec-future script-atom]
   (let [working-dir  (-> script-atom deref :working_dir) 
-        pid (-> (str working-dir "/._cider-ci.pid") slurp clojure.string/trim)
+        pid (-> (pid-file-path @script-atom) slurp clojure.string/trim)
         pids (add-descendant-pids #{pid})
         descendant-pids (difference pids #{pid})]
     (commons-exec/sh  
       (concat ["kill" "-KILL"]
               (into [] descendant-pids)))))
 
+(defn terminate-via-commons-exec-watchdog [exec-future script-atom]
+  (.destroyProcess (:watchdog @script-atom))) 
+
 (defn terminate [exec-future script-atom]
   (case (System/getProperty "os.name")
     "Linux" (terminate-via-process-tree exec-future script-atom) 
-    nil))
+    "Mac OS X" (terminate-via-process-tree exec-future script-atom)
+    (terminate-via-commons-exec-watchdog exec-future script-atom) 
+    ))
 
-(defn preper-terminate-script-prefix [working-dir]
+(defn preper-terminate-script-prefix [params]
   (case (System/getProperty "os.name")
-    "Linux" (str "echo $$ > '" working-dir "/._cider-ci.pid' && ")
-    "Mac OS X" (str "echo $$ > '" working-dir "/._cider-ci.pid' && ")
+    ("Linux" "Mac OS X") (str "echo $$ > '"(pid-file-path params)"' && ")
     ""))
 
 
 ;##############################################################################
 
-(defn- create-command-wrapper-file [working-dir script-file]
-  (let [wrapper-file (doto (File/createTempFile "cider-ci_", ".command_wrapper")
+(defn- create-command-wrapper-file [params]
+  (let [working-dir (working-dir params)
+        wrapper-file (doto (File/createTempFile "cider-ci_", ".command_wrapper")
                        .deleteOnExit
                        (.setExecutable true false)
-                       (spit  (str (preper-terminate-script-prefix working-dir) 
+                       (spit  (str (preper-terminate-script-prefix params) 
                                    "cd '" working-dir "' " 
-                                   "&& " (.getAbsolutePath script-file))))]
-    (logging/info {:WRAPPER-FILE (.getAbsolutePath wrapper-file)})
+                                   "&& " (.getAbsolutePath (:script-file params)))))]
+    (logging/debug {:WRAPPER-FILE (.getAbsolutePath wrapper-file)})
     (.getAbsolutePath wrapper-file)))
 
-(defn- command [script-file working-dir env-variables]
-  (flatten (concat (interpreter (sudo-env env-variables)) 
-                   [(create-command-wrapper-file working-dir script-file)])))
+(defn- command [params]
+  (flatten (concat (interpreter (sudo-env (:environment-variables params))) 
+                   [(create-command-wrapper-file params)])))
 
 (defn- commons-exec-sh [command env-variables watchdog]
   (commons-exec/sh 
     command 
-    (conj {:env (conj {} (System/getenv) env-variables)}
-          (when watchdog
-            {:watchdog watchdog }))))
+    {:env (conj {} (System/getenv) env-variables)
+     :watchdog watchdog }))
 
-(defn exec-sh [params timeout-or-watchdog]
-  (let [env-variables (prepare-env-variables params)
-        script-file (prepare-script-file (:body params))  
-        command (command script-file (working-dir params) env-variables)]
-    (logging/debug {:command command})
-    (commons-exec-sh command env-variables timeout-or-watchdog)))
+(defn exec-sh [params]
+  (let [command (command params)]
+    (commons-exec-sh command 
+                     (:environment-variables params)
+                     (:watchdog params))))
 
 (defn- get-final-parameters [exec-res]
   {:finished_at (time/now)
@@ -165,6 +189,7 @@
            (fn [params e-str]
              (conj params
                    {:state "failed"
+                    :finished_at (time/now)
                     :error e-str }))
            e-str ))) 
 
@@ -174,25 +199,32 @@
 
 (defn execute [script-atom]
   (debug-recent-execs-push script-atom)
-  (try (let [params @script-atom
-             timeout (or (:timeout params) 200)
+  (try (let [timeout (or (:timeout @script-atom) 200)
              started-at (time/now)
-             watchdog (create-watchdog timeout)]
+             watchdog (create-watchdog)]
          (logging/debug "TIMEOUT" timeout)
          (swap! script-atom 
                 (fn [params watchdog started-at]
                   (conj params
                         {:started_at started-at
-                         :state "executing"}
-                        (when watchdog
-                          {:watchdog watchdog})))
+                         :state "executing"
+                         :watchdog watchdog
+                         :environment-variables (prepare-env-variables params)
+                         :script-file (prepare-script-file params)
+                         }))
                 watchdog started-at)
-         (let [exec-future (exec-sh params watchdog)]
+         (let [exec-future (exec-sh @script-atom)]
            (loop []
-             (when (time/after? (time/now) 
-                                (time/plus started-at (time/seconds timeout)))
+             (logging/debug 'eval-termination @script-atom)
+             (when 
+               (and (not (realized? exec-future))
+                    (or 
+                      (:terminate @script-atom)
+                      (time/after? (time/now) 
+                                   (time/plus started-at (time/seconds timeout)))))
                (terminate exec-future script-atom))
              (when-not (realized? exec-future)
+               ;TODO 500 for debugging; set to 100 for production
                (Thread/sleep 500)
                (recur)))
            (swap! script-atom
@@ -206,4 +238,5 @@
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
+;(remove-ns (symbol (str *ns*)))
 ;(debug/debug-ns *ns*)

@@ -30,4 +30,5 @@
   :main cider-ci.ex.main 
   ; :repositories [["tmp" {:url "http://maven-repo-tmp.drtom.ch" :snapshots false}]]
   :jvm-opts ["-Xmx256m"]
+  :repl-options {:timeout  120000}
   )
