@@ -22,7 +22,9 @@
   (catcher/wrap-with-log-error (:working_dir @(get-params-atom trial))))
 
 (defn get-scripts-atoms [trial]
-  (catcher/wrap-with-log-error (:scripts @(get-params-atom trial))))
+  (catcher/wrap-with-log-error (->> @(get-params-atom trial)
+                                    :scripts 
+                                    (map second))))
 
 (defn get-script-by-name [script-name trial]
   (catcher/wrap-with-log-error 
@@ -30,6 +32,14 @@
          (map deref)
          (filter #(= script-name (:name %)))
          first )))
+
+(defn get-script-by-script-key [script-key trial]
+  (catcher/wrap-with-log-error 
+    (->> (get-scripts-atoms trial)
+         (map deref)
+         (filter #(= script-key (:key %)))
+         first)))
+
 
 
 (defn scripts-done? [trial]

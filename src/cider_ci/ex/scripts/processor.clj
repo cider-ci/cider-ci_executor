@@ -5,9 +5,12 @@
 (ns cider-ci.ex.scripts.processor
   (:require 
     [cider-ci.ex.scripts.exec :as exec]
+    [cider-ci.ex.scripts.processor.terminator :refer [set-terminate-scripts]]
+    [cider-ci.ex.scripts.processor.starter :refer [start-scripts]]
+    [cider-ci.ex.scripts.processor.skipper :refer [skip-scripts]]
     [cider-ci.ex.trial.helper :as trial]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
-    [cider-ci.utils.map :as map]
+    [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
     [clj-commons-exec :as commons-exec]
     [clj-time.core :as time]
     [clojure.tools.logging :as logging]
@@ -16,96 +19,13 @@
     ))
 
 
-;##############################################################################
 
-(defn- dependency-fulfilled? [dependency script-a trial]
-  (catcher/wrap-with-log-error
-    (let [name (:name dependency)
-          script (trial/get-script-by-name name trial)
-          state (:state script)]
-      (logging/info "dependency-fulfilled?" {:name name :state state :dependency dependency :script script})
-      (some #{state} (:states dependency)))))
-
-(defn- dependencies-fulfilled? [script-a trial]
-  (catcher/wrap-with-log-error
-    (every?  
-      #(dependency-fulfilled? % script-a trial) 
-      (-> @script-a :dependencies map/convert-to-array))))
-
-(defn- scripts-atoms-ready-for-execution [trial]
-  (catcher/wrap-with-log-error
-    (->> (trial/get-scripts-atoms trial)
-         (filter #(-> % deref pending? )) 
-         (filter #(dependencies-fulfilled? % trial)))))
-
-(defn- exec?
-  "Determines if the script should be executed from this thread/scope. 
-  Sets the state to dispatched and returns true if so. 
-  Returns false otherwise. "
-  [script-atom] 
-  (let [r (str (.getId (Thread/currentThread)) "_" (rand))
-        swap-in-fun (fn [script]
-                      (if (= (:state script) "pending"); we will exec if it is still pending
-                        (assoc script :state "executing" :dispatch_thread_sig r)
-                        script))]
-    (swap! script-atom swap-in-fun)
-    (= r (:dispatch_thread_sig @script-atom))))
-
-
-;###############################################################################
-
-(defn terminator-fulfilled? [terminator script-atom trial]
-  (catcher/wrap-with-log-error
-    (let [name (:name terminator)
-          script (trial/get-script-by-name name trial)
-          state (:state script)]
-      (logging/info "terminator-fulfilled?" {:name name :state state :terminator terminator :script script})
-      (some #{state} (:states terminator)))))
-
-(defn terminators-fulfilled [script-atom trial]
-  (catcher/wrap-with-log-error
-    (boolean 
-      (when-let [terminators (not-empty (:terminators @script-atom))]
-        (logging/debug 'terminators-fulfilled {:terminators terminators})
-        (every?  #(terminator-fulfilled? % script-atom trial) 
-                (-> terminators map/convert-to-array))))))
-
-
-(defn log-seq [msg seq]
-  (logging/debug msg {:seq seq})
-  (doall seq))
-
-(defn- set-terminate-scripts  [trial]
-  (catcher/wrap-with-log-error
-    (->> (trial/get-scripts-atoms trial)
-         (log-seq 'script-atoms)
-         (filter #(-> % deref executing?))
-         (log-seq 'script-atoms-executing)
-         (filter #(terminators-fulfilled % trial))
-         (log-seq 'script-atoms-fulfilled)
-         (map (fn [script-atom]
-                (swap! script-atom  #(assoc % :terminate true )))
-              ))))
-
-
-;###############################################################################
-
-(defn exec-ready-scripts [trial]
-  (->> (scripts-atoms-ready-for-execution trial)
-       (filter exec?) ; avoid potential race condition here
-       (map #(future (exec/execute %)))
-       doall)
-  trial)
-
-
-;###############################################################################
 
 (defn- trigger [trial msg]
   (logging/info "TRIGGER: " msg)
-  (catcher/wrap-with-log-error
-    (set-terminate-scripts trial))
-  (catcher/wrap-with-log-error
-    (exec-ready-scripts trial)) 
+  (catcher/wrap-with-log-error (skip-scripts trial))
+  (catcher/wrap-with-log-error (set-terminate-scripts trial))
+  (catcher/wrap-with-log-error (start-scripts trial)) 
   trial)
 
 (defn- eval-watch-trigger [trial old-state new-state]
@@ -115,6 +35,15 @@
         (trigger trial (str (:name old-state) " : " 
                             (:state old-state) " -> " (:state new-state)))))))
 
+
+;###############################################################################
+
+(defn- touch [trial]
+  ; touch a file in the working dir every minute during execution so the
+  ; working dir will not be removed prematurely by the sweeper 
+  (when (= 0  (-> (System/currentTimeMillis) (/ 1000) double int (mod 60))) 
+    (commons-exec/sh ["touch" "._cider-ci.executing"]
+                     {:dir (-> trial :params-atom deref :working_dir)})))
 
 ;###############################################################################
 
@@ -146,12 +75,14 @@
 
 ;###############################################################################
 
+
 (defn process [trial]
   (try 
     (add-watchers trial)
     (trigger trial "initial")
     (loop []
       (Thread/sleep 100)
+      (touch trial)
       (let [scripts-atoms (trial/get-scripts-atoms trial)]
         (when (and (not (every? finished? scripts-atoms))
                    (or (some executing? scripts-atoms)
@@ -170,11 +101,7 @@
   ; TODO 
   )
 
-
-
-
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
 ;(debug/debug-ns *ns*)
-

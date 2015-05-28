@@ -61,18 +61,26 @@
     (send-trial-patch report-agent @params-atom (select-keys @params-atom [:state :started_at])))
   trial)
 
+(defn- prepare-script [k script-params trial-params]
+  (atom (conj {}
+              script-params
+              (when-not (:name script-params)
+                {:name (name k)})
+              {:state "pending"
+               :key (name k)}
+              (select-keys trial-params
+                           [:environment-variables 
+                            :job_id 
+                            :trial_id 
+                            :working_dir]))))
+
 (defn- prepare-and-insert-scripts [trial]
   (let [params-atom (get-params-atom trial)
         initial-scripts (:scripts @params-atom)
         script-atoms (->> initial-scripts
-                          (map #(conj %
-                                      {:state "pending" }
-                                      (select-keys @params-atom
-                                                   [:environment-variables 
-                                                    :job_id 
-                                                    :trial_id 
-                                                    :working_dir])))
-                          (map atom))]
+                          (map (fn [[k v]]
+                                 [k (prepare-script k v @params-atom)]))
+                          (into {}))]
     (swap! params-atom #(conj %1 {:scripts %2}) script-atoms))
   trial)
 
@@ -125,9 +133,8 @@
                                            (or (:inet_address port-params) "localhost") 
                                            (:min port-params) 
                                            (:max port-params))])
-                            (:ports @params-atom)))
-        scripts (:scripts @params-atom)]
-    (doseq [script-atom scripts]
+                            (:ports @params-atom)))]
+    (doseq [script-atom (get-scripts-atoms trial)]
       (swap! script-atom #(conj %1 {:ports %2}) ports))
     ports))
 
@@ -143,16 +150,9 @@
   trial)
 
 (defn set-final-state [trial]
-  (let [passed?  (->> (get-params-atom trial)
-                      (debug/identity-with-logging 'cider-ci.ex.trial)
-                      deref
-                      (debug/identity-with-logging 'cider-ci.ex.trial)
-                      :scripts
-                      (into [])(debug/identity-with-logging 'cider-ci.ex.trial)
+  (let [passed?  (->> (get-scripts-atoms trial)
                       (filter #(-> % deref :ignore-state not))
-                      (into [])(debug/identity-with-logging 'cider-ci.ex.trial)
-                      (every? #(= "passed" (-> % deref :state)))
-                      (debug/identity-with-logging 'cider-ci.ex.trial))
+                      (every? #(= "passed" (-> % deref :state))))
         final-state (if passed? "passed" "failed")]
     (swap! (get-params-atom trial)
            #(conj %1 {:state %2, :finished_at (time/now)}) 
