@@ -26,9 +26,6 @@
     [clojure.stacktrace :as stacktrace]
     [clojure.tools.logging :as logging]
     [robert.hooke :as hooke]
-    )
-  (:use 
-    [clojure.algo.generic.functor :only [fmap]]
     ))
 
 

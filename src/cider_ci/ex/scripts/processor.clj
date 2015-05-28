@@ -5,9 +5,10 @@
 (ns cider-ci.ex.scripts.processor
   (:require 
     [cider-ci.ex.scripts.exec :as exec]
-    [cider-ci.ex.scripts.processor.terminator :refer [set-terminate-scripts]]
-    [cider-ci.ex.scripts.processor.starter :refer [start-scripts]]
     [cider-ci.ex.scripts.processor.skipper :refer [skip-scripts]]
+    [cider-ci.ex.scripts.processor.starter :refer [start-scripts]]
+    [cider-ci.ex.scripts.processor.terminator :refer [set-terminate-scripts]]
+    [cider-ci.ex.scripts.processor.trigger :as trigger]
     [cider-ci.ex.trial.helper :as trial]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
     [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
@@ -20,20 +21,6 @@
 
 
 
-
-(defn- trigger [trial msg]
-  (logging/info "TRIGGER: " msg)
-  (catcher/wrap-with-log-error (skip-scripts trial))
-  (catcher/wrap-with-log-error (set-terminate-scripts trial))
-  (catcher/wrap-with-log-error (start-scripts trial)) 
-  trial)
-
-(defn- eval-watch-trigger [trial old-state new-state]
-  (future 
-    (catcher/wrap-with-log-error
-      (when (not= (:state old-state) (:state new-state))
-        (trigger trial (str (:name old-state) " : " 
-                            (:state old-state) " -> " (:state new-state)))))))
 
 
 ;###############################################################################
@@ -59,27 +46,13 @@
                            finished-at))))
 
 
-;### watchers #################################################################
-
-(defn- add-watchers [trial]
-  (doseq [script-atom (trial/get-scripts-atoms trial)]
-    (add-watch script-atom 
-               :trigger 
-               (fn [_ script-atom old-state new-state]
-                 (eval-watch-trigger trial old-state new-state)))))
-
-(defn- remove-watchers [trial]
-  (doseq [script-atom (trial/get-scripts-atoms trial)]
-    (remove-watch script-atom :trigger)))
-
 
 ;###############################################################################
 
-
 (defn process [trial]
   (try 
-    (add-watchers trial)
-    (trigger trial "initial")
+    (trigger/add-watchers trial)
+    (trigger/trigger trial "initial")
     (loop []
       (Thread/sleep 100)
       (touch trial)
@@ -92,10 +65,10 @@
                                        (filter #(finished-less-then-x-ago? 
                                                   @% (time/seconds 1)))))))
           (recur))))
-    (remove-watchers trial)
     trial
     (finally 
-      (set-skipped-state-if-not-finnished trial))))
+      (catcher/wrap-with-suppress-and-log-warn (trigger/remove-watchers trial))
+      (catcher/wrap-with-suppress-and-log-warn (set-skipped-state-if-not-finnished trial)))))
 
 (defn abort [trial-id]
   ; TODO 
