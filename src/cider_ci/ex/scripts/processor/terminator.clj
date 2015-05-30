@@ -19,7 +19,7 @@
 
 (defn- terminate-when-fulfilled? [params script-atom trial]
   (catcher/wrap-with-log-error
-    (let [script-key (:script-key params)
+    (let [script-key (:script params)
           script (trial/get-script-by-script-key script-key trial)
           state (:state script)]
       (some #{state} (:states params)))))

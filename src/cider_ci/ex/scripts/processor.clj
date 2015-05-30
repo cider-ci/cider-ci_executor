@@ -34,10 +34,21 @@
 
 ;###############################################################################
 
+(defn- skip-script [script-atom]
+  (swap! script-atom 
+         (fn [script]
+           (if (= "pending" (:state script))
+             (assoc script 
+                    :state "skipped" 
+                    :skipped_at (time/now)
+                    :skipped_by "leftover check")
+             script))))
+
+
 (defn- set-skipped-state-if-not-finnished [trial]
   (doseq [script-atom (trial/get-scripts-atoms trial)]
     (when-not (finished? script-atom)
-      (swap! script-atom #(assoc % :state "skipped" :skipped_at (time/now)))))
+      (skip-script script-atom)))
   trial)
 
 (defn- finished-less-then-x-ago? [item x]

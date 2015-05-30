@@ -18,44 +18,56 @@
 
 (def this-ns *ns*)
 
-(defn- log-seq [msg seq]
-  (logging/debug this-ns msg {:seq seq})
-  (doall seq))
+(defn- debug-pipe [msg x]
+  (logging/debug this-ns msg x)
+  x)
 
 (defn- dependency-finished? [params script-atom trial]
   (boolean 
-    (when-let [depend-on-script (get-script-by-script-key (:script-key params) trial)]
+    (when-let [depend-on-script (get-script-by-script-key (:script params) trial)]
                (finished? depend-on-script))))
 
-(defn- start-when-not-fulfilled? [& args]
+(defn- unsatisfiable? [& args]
   (not (apply start-when-fulfilled? args)))
 
 (defn- any-unsatisfiable? [script-atom trial]
   (boolean 
     (when-let [start-when-conditions (:start-when @script-atom)]
       (->> start-when-conditions
+           (debug-pipe ['any-unsatisfiable? 'start-when-conditions])
            convert-to-array
-           amend-with-start-when-defaults
+           (debug-pipe ['any-unsatisfiable? 'array])
+           (map amend-with-start-when-defaults)
+           (debug-pipe ['any-unsatisfiable? 'with-defaults])
            (filter #(dependency-finished? % script-atom trial))
-           (filter #(start-when-not-fulfilled? % script-atom trial))
+           (debug-pipe ['any-unsatisfiable? 'dependency-finished])
+           (filter #(unsatisfiable? % script-atom trial))
+           (debug-pipe ['any-unsatisfiable? 'not-fulfilled?])
            empty? 
            not))))
 
 (defn- unsatisfiable-scripts [trial]
   (->> (trial/get-scripts-atoms trial)
-       (log-seq 'script-atoms)
+       (debug-pipe ['unsatisfiable-scripts 'script-atoms])
        (filter #(-> % deref pending?))
-       (log-seq 'pending-scripts-atoms)
+       (debug-pipe ['unsatisfiable-scripts 'pending-scripts-atoms])
        (filter #(any-unsatisfiable? % trial))
-       (log-seq 'unsatisfiable-scripts-atoms)
+       (debug-pipe ['unsatisfiable-scripts 'result])
        doall))
+
+(defn- skip-script [script-atom]
+  (swap! script-atom 
+         (fn [script]
+           (if (= "pending" (:state script))
+             (assoc script 
+                    :state "skipped" 
+                    :skipped_at (time/now)
+                    :skipped_by "unsatisfiable check")
+             script))))
 
 (defn  skip-scripts [trial]
   (->> (unsatisfiable-scripts trial)
-       (map #(swap! % (fn [script]
-                        (if (= "pending" (:state script))
-                          (assoc script :state "skipped" :skipped_at (time/now))
-                          script))))
+       (map skip-script)
        doall)
   trial)
 

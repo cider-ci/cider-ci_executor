@@ -19,7 +19,7 @@
 (defn start-when-fulfilled? [params script-a trial]
   (logging/info 'start-when-fulfilled? [params script-a trial])
   (catcher/wrap-with-log-error
-    (let [script-key (:script-key params)
+    (let [script-key (:script params)
           script (trial/get-script-by-script-key script-key trial)
           state (:state script)]
       (logging/debug "start-when-fulfilled?" {:script-key script-key :state state :params params :script script})
