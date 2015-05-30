@@ -18,15 +18,11 @@
                      }))
 
 
-;### Helper ###################################################################
-(defn rubyize-keyword [kw]
-  (string/replace (name kw) "-" "_"))
-
 
 ;### Patch ####################################################################
 (defn patch-as-json [url params]
   (logging/info "PATCHTNG to: " url)
-  (let [body (json/write-str params :key-fn rubyize-keyword)
+  (let [body (json/write-str params)
         params  {:insecure? true
                  :content-type :json
                  :accept :json 

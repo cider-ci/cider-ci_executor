@@ -4,6 +4,8 @@
  
 (ns cider-ci.ex.trial.helper
   (:require
+    [cider-ci.ex.reporter :as reporter]
+    [cider-ci.utils.http :refer [build-server-url]]
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
     [drtom.logbug.debug :as debug]
@@ -41,13 +43,24 @@
          first)))
 
 
-
 (defn scripts-done? [trial]
   (catcher/wrap-with-log-error (->> trial 
                        get-scripts-atoms 
                        (map deref)
                        (map :state)
                        (every? terminal-states))))
+
+
+(defn send-patch-via-agent [trial params]
+  (let [report-agent (:report-agent trial)
+        url (build-server-url (-> (get-params-atom trial) deref :patch_path))
+        fun (fn [agent-state]
+              (catcher/wrap-with-log-error
+                (let [res (reporter/patch-as-json-with-retries url params)]
+                  (conj agent-state params))))]
+    (logging/debug "sending report off" {:url url})
+    (send-off report-agent fun)))
+
 
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)

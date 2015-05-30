@@ -5,6 +5,7 @@
 (ns cider-ci.ex.scripts.processor
   (:require 
     [cider-ci.ex.scripts.exec :as exec]
+    [cider-ci.ex.scripts.processor.patch :as patch]
     [cider-ci.ex.scripts.processor.skipper :refer [skip-scripts]]
     [cider-ci.ex.scripts.processor.starter :refer [start-scripts]]
     [cider-ci.ex.scripts.processor.terminator :refer [set-terminate-scripts]]
@@ -18,7 +19,6 @@
     [drtom.logbug.catcher :as catcher]
     [drtom.logbug.debug :as debug]
     ))
-
 
 
 
@@ -37,7 +37,7 @@
 (defn- set-skipped-state-if-not-finnished [trial]
   (doseq [script-atom (trial/get-scripts-atoms trial)]
     (when-not (finished? script-atom)
-      (swap! script-atom #(assoc % :state "skipped"))))
+      (swap! script-atom #(assoc % :state "skipped" :skipped_at (time/now)))))
   trial)
 
 (defn- finished-less-then-x-ago? [item x]
@@ -46,12 +46,12 @@
                            finished-at))))
 
 
-
 ;###############################################################################
 
 (defn process [trial]
   (try 
     (trigger/add-watchers trial)
+    (patch/add-watchers trial)
     (trigger/trigger trial "initial")
     (loop []
       (Thread/sleep 100)
@@ -67,8 +67,12 @@
           (recur))))
     trial
     (finally 
-      (catcher/wrap-with-suppress-and-log-warn (trigger/remove-watchers trial))
-      (catcher/wrap-with-suppress-and-log-warn (set-skipped-state-if-not-finnished trial)))))
+      (catcher/wrap-with-suppress-and-log-warn 
+        (trigger/remove-watchers trial))
+      (catcher/wrap-with-suppress-and-log-warn 
+        (set-skipped-state-if-not-finnished trial))
+      (catcher/wrap-with-suppress-and-log-warn 
+        (future (Thread/sleep (* 60 1000) (patch/remove-watchers trial)))))))
 
 (defn abort [trial-id]
   ; TODO 

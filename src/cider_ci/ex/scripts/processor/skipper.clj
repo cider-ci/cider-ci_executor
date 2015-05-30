@@ -54,7 +54,7 @@
   (->> (unsatisfiable-scripts trial)
        (map #(swap! % (fn [script]
                         (if (= "pending" (:state script))
-                          (assoc script :state "skipped")
+                          (assoc script :state "skipped" :skipped_at (time/now))
                           script))))
        doall)
   trial)

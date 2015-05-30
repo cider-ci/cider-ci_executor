@@ -29,33 +29,12 @@
     ))
 
 
-;#### sending updates #########################################################
-(defn create-update-sender-via-agent [report-agent]
-  (fn [params]
-    (logging/debug "invoke anonymous update-sender" [params])
-    (catcher/wrap-with-log-error
-      (let [url (build-server-url (:patch_path params))
-            fun (fn [agent-state]
-                  (catcher/wrap-with-log-error
-                    (let [res (reporter/patch-as-json-with-retries url params)]
-                      (conj agent-state params))))]
-        (logging/debug "sending report off" {:url url})
-        (send-off report-agent fun)))))
-
-(defn send-trial-patch 
-  "Sends just the patch-params" 
-  [report-agent params patch-params]
-  ((create-update-sender-via-agent report-agent) 
-   (conj (select-keys params [:patch_path])
-         patch-params)))
-
-
 ;#### prepare trial ###########################################################
 (defn- set-and-send-start-params [trial] 
   (let [params-atom (get-params-atom trial)
         report-agent (:report-agent trial)]
     (swap! params-atom (fn [params] (conj params {:state "executing"}))) 
-    (send-trial-patch report-agent @params-atom (select-keys @params-atom [:state :started_at])))
+    (send-patch-via-agent trial (select-keys @params-atom [:state :started_at])))
   trial)
 
 (defn- prepare-script [k script-params trial-params]
@@ -167,8 +146,8 @@
     (port-provider/release-port port)))
 
 (defn send-final-result [trial]
-  (let [ report-agent (:report-agent trial)]
-    ((create-update-sender-via-agent report-agent) @(get-params-atom trial)))
+  (let [params (dissoc @(get-params-atom trial) :scripts)]
+    (send-patch-via-agent trial params))
   trial)
 
 

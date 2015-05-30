@@ -45,4 +45,3 @@
   (doseq [script-atom (trial/get-scripts-atoms trial)]
     (remove-watch script-atom :trigger)))
 
-
