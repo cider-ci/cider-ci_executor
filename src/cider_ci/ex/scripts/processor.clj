@@ -11,7 +11,7 @@
     [cider-ci.ex.scripts.processor.terminator :refer [set-terminate-scripts]]
     [cider-ci.ex.scripts.processor.trigger :as trigger]
     [cider-ci.ex.trial.helper :as trial]
-    [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
+    [cider-ci.ex.utils.state :refer [pending? executing-or-waiting? executing? finished?]]
     [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
     [clj-commons-exec :as commons-exec]
     [clj-time.core :as time]
@@ -69,7 +69,7 @@
       (touch trial)
       (let [scripts-atoms (trial/get-scripts-atoms trial)]
         (when (and (not (every? finished? scripts-atoms))
-                   (or (some executing? scripts-atoms)
+                   (or (some executing-or-waiting? scripts-atoms)
                        ; give the triggers a chance to evaluate: 
                        (not-empty (->> scripts-atoms 
                                        (filter finished?)

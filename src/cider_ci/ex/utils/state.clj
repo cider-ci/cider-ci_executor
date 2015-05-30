@@ -17,6 +17,10 @@
 (defn pending? [x]
   (= "pending" (:state (deref-or-val x))))
 
+(defn executing-or-waiting? [x]
+  (some #{(:state (deref-or-val x))} 
+        ["executing" "waiting"]))
+
 (defn executing? [x]
   (= "executing" (:state (deref-or-val x))))
 

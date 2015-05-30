@@ -224,8 +224,7 @@
                                    (time/plus started-at (time/seconds timeout)))))
                (terminate exec-future script-atom))
              (when-not (realized? exec-future)
-               ;TODO 500 for debugging; set to 100 for production
-               (Thread/sleep 500)
+               (Thread/sleep 100)
                (recur)))
            (swap! script-atom
                   (fn [params res]

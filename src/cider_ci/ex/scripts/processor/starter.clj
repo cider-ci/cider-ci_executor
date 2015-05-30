@@ -53,16 +53,50 @@
   (let [r (str (.getId (Thread/currentThread)) "_" (rand))
         swap-in-fun (fn [script]
                       (if (= (:state script) "pending"); we will exec if it is still pending
-                        (assoc script :state "executing" :dispatch_thread_sig r)
+                        (assoc script :state "waiting" :dispatch_thread_sig r)
                         script))]
     (swap! script-atom swap-in-fun)
     (= r (:dispatch_thread_sig @script-atom))))
 
 
+;####################################################################
+
+(defonce exclusive-resource-agents-atom (atom {}))
+
+(defn create-execlusive-resource-agent [agent-name]
+  (agent {:resource agent-name}
+         :error-mode :continue))
+
+(defn get-exclusive-resource-agent [agent-name]
+  (-> (swap! exclusive-resource-agents-atom
+             (fn [exclusive-resource-agents agent-name]
+               (if (get exclusive-resource-agents agent-name)
+                 exclusive-resource-agents
+                 (assoc exclusive-resource-agents 
+                        agent-name (create-execlusive-resource-agent agent-name))))
+             agent-name)
+      (get agent-name)))
+
+
+(defn exec-inside-agent [agent-state script-atom]
+  (when (= "waiting" (:state @script-atom))
+    (exec/execute script-atom))
+  (assoc agent-state 
+         :last_finished_at (time/now)
+         :last_script @script-atom))
+
+(defn dispatch [script-atom]
+  (if-let [exclusive-resource (:exclusive-executor-resource @script-atom)]
+    (send-off (get-exclusive-resource-agent exclusive-resource) 
+              exec-inside-agent script-atom)
+    (future (exec/execute script-atom))))
+
+;####################################################################
+
 (defn start-scripts [trial]
   (->> (scripts-atoms-to-be-started trial)
        (filter exec?) ; avoid potential race condition here
-       (map #(future (exec/execute %)))
+       (map dispatch)
        doall)
   trial)
 
