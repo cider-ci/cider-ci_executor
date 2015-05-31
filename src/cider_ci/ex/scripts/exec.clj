@@ -7,6 +7,7 @@
     [java.io File]
     )
   (:require 
+    [cider-ci.ex.scripts.exec.terminator :refer [terminate create-watchdog preper-terminate-script-prefix]]
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.fs :as ci-fs]
     [clj-commons-exec :as commons-exec]
@@ -58,88 +59,6 @@
 
 (defn- interpreter [env_vars]
   (flatten ["sudo" "-u" (get-exec-user) env_vars  "-n" "-i"]))
-
-
-;### termination ##############################################################
-; It seems not possible to guarantee that all subprocesses are killed.  The
-; default strategy is to rely on "Apache Commons Exec"  which sometimes works
-; but is unreliable in many cases, e.g. when the script starts in a new
-; sub-shell.  On Linux we recursively find all subprocesses via `ps`, see also
-; `ps axf -o user,pid,ppid,pgrp,args`, and then kill those. This works well
-; unless double forks are used which are nearly impossible to track with
-; reasonable effort. 
-
-(defn create-watchdog []
-  (ExecuteWatchdog. (ExecuteWatchdog/INFINITE_TIMEOUT) ))
-
-(defn get-child-pids-linux [pids]
-  ; This is known to work under linux. Due to the variations in ps it may not
-  ; work under other Unixes, certainly not under Mac OS X.
-  (try (-> (commons-exec/sh 
-             ["ps" "--no-headers" "-o" "pid" "--ppid" (clojure.string/join "," pids)])
-           deref
-           :out
-           trim
-           (split #"\n")
-           (#(map trim %))
-           set)
-       (catch Exception _
-         (set []))))
-
-(defn get-child-pids [pids]
-  ; This may work with all unixes; it works with Mac OS X and linux. 
-  (try (->> (-> (commons-exec/sh ["ps" "x" "-o" "pid ppid"])
-                deref
-                :out 
-                trim
-                (split #"\n")
-                (#(map trim %))
-                rest)
-            (map #(split % #"\s+"))
-            (filter #(some (-> % second list set) pids))
-            (map first)
-            set)
-       (catch Exception _
-         (set []))))
-
-(defn add-descendant-pids [pids]
-  (logging/debug 'add-descendant-pids pids)
-  (let [child-pids (get-child-pids pids)
-        result-pids (union pids child-pids)]
-    (logging/debug {:pids pids :result-pids result-pids})
-    (if (= pids result-pids)
-      result-pids
-      (add-descendant-pids result-pids))))
-        
-
-(defn pid-file-path [params]
-  (let [working-dir  (-> params :working_dir)
-        script-name (-> params :name)]
-    (str working-dir (File/separator) "._cider-ci_" (ci-fs/path-proof script-name) ".pid")))
-
-(defn terminate-via-process-tree [exec-future script-atom]
-  (let [working-dir  (-> script-atom deref :working_dir) 
-        pid (-> (pid-file-path @script-atom) slurp clojure.string/trim)
-        pids (add-descendant-pids #{pid})
-        descendant-pids (difference pids #{pid})]
-    (commons-exec/sh  
-      (concat ["kill" "-KILL"]
-              (into [] descendant-pids)))))
-
-(defn terminate-via-commons-exec-watchdog [exec-future script-atom]
-  (.destroyProcess (:watchdog @script-atom))) 
-
-(defn terminate [exec-future script-atom]
-  (case (System/getProperty "os.name")
-    "Linux" (terminate-via-process-tree exec-future script-atom) 
-    "Mac OS X" (terminate-via-process-tree exec-future script-atom)
-    (terminate-via-commons-exec-watchdog exec-future script-atom) 
-    ))
-
-(defn preper-terminate-script-prefix [params]
-  (case (System/getProperty "os.name")
-    ("Linux" "Mac OS X") (str "echo $$ > '"(pid-file-path params)"' && ")
-    ""))
 
 
 ;##############################################################################
