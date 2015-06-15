@@ -80,6 +80,7 @@
 (defn build-main-handler [context]
   ( -> (compojure.handler/api (build-routes context))
        (wrap-handler-with-logging 'cider-ci.ex.web)
+       routing/wrap-shutdown
        (wrap-handler-with-logging 'cider-ci.ex.web)
        (ring.middleware.json/wrap-json-params)
        (wrap-handler-with-logging 'cider-ci.ex.web)
@@ -125,6 +126,6 @@
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
+;(debug/debug-ns 'cider-ci.auth.http-basic)
 ;(debug/debug-ns *ns*)
-
 
