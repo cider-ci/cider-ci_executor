@@ -15,16 +15,17 @@
     [cider-ci.ex.scripts.processor]
     [cider-ci.ex.trial.helper :refer :all]
     [cider-ci.utils.daemon :as daemon]
-    [drtom.logbug.debug :as debug]
-    [drtom.logbug.thrown :as thrown]
     [cider-ci.utils.http :refer [build-server-url]]
-    [drtom.logbug.catcher :as catcher]
+    [cider-ci.utils.map :refer [deep-merge]]
     [clj-commons-exec :as commons-exec]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clojure.pprint :as pprint]
     [clojure.stacktrace :as stacktrace]
     [clojure.tools.logging :as logging]
+    [drtom.logbug.catcher :as catcher]
+    [drtom.logbug.debug :as debug]
+    [drtom.logbug.thrown :as thrown]
     [robert.hooke :as hooke]
     ))
 
@@ -39,16 +40,16 @@
 
 (defn- prepare-script [k script-params trial-params]
   (atom (conj {}
-              script-params
+              (deep-merge (select-keys trial-params
+                                       [:environment-variables 
+                                        :job_id 
+                                        :trial_id 
+                                        :working_dir])
+                          script-params)
               (when-not (:name script-params)
                 {:name (name k)})
               {:state "pending"
-               :key (name k)}
-              (select-keys trial-params
-                           [:environment-variables 
-                            :job_id 
-                            :trial_id 
-                            :working_dir]))))
+               :key (name k)})))
 
 (defn- prepare-and-insert-scripts [trial]
   (let [params-atom (get-params-atom trial)
