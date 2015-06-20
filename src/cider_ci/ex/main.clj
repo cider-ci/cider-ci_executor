@@ -1,13 +1,13 @@
 ; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
-; See the "LICENSE.txt" file provided with this software. 
+; See the "LICENSE.txt" file provided with this software.
 ;
 (ns cider-ci.ex.main
   (:gen-class)
-  (:import 
+  (:import
     [java.io File]
     )
-  (:require 
+  (:require
     [cider-ci.ex.ping :as ping]
     [cider-ci.ex.reporter :as reporter]
     [cider-ci.ex.traits :as traits]
@@ -26,7 +26,7 @@
 
 
 (defn working-dir []
-  (or (-> (config/get-config) :working_dir) 
+  (or (-> (config/get-config) :working_dir)
       (throw (IllegalStateException. ":working_dir config missing"))))
 
 (defn repos-dir []
@@ -40,9 +40,9 @@
 (defn initialize []
   (.mkdir (File. (working-dir)))
   (.mkdir (File. (repos-dir))))
-                    
+
 (defn -main [& args]
-  (catcher/wrap-with-log-error 
+  (catcher/wrap-with-log-error
     (drtom.logbug.thrown/reset-ns-filter-regex #".*cider.ci.*")
     (logging/info "starting -main " args)
     (config/initialize)

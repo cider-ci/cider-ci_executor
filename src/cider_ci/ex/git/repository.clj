@@ -3,10 +3,10 @@
 ; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.git.repository
-  (:import 
+  (:import
     [java.io File]
     )
-  (:require 
+  (:require
     [cider-ci.utils.config :as config :refer [get-config]]
     [drtom.logbug.debug :as debug]
     [cider-ci.utils.fs :as ci-fs]
@@ -27,7 +27,7 @@
 
 (defn- canonical-repository-path [repository-url]
   (let [absolute-repos-path (fs/absolute (:git_repos_dir (get-config)))
-        path (str absolute-repos-path  (File/separator) 
+        path (str absolute-repos-path  (File/separator)
                   (ci-fs/path-proof repository-url))]
     (assert (> (count path) (count (str absolute-repos-path))))
     path))
@@ -38,36 +38,36 @@
 
 (defn- get-or-create-repository-agent [repository-url]
   (or (@repository-agents-atom repository-url)
-      ((swap! repository-agents-atom 
+      ((swap! repository-agents-atom
               (fn [repository-agents repository-url]
                 (if (repository-agents repository-url)
                   repository-agents
-                  (conj repository-agents 
+                  (conj repository-agents
                         {repository-url
                          (agent {:repository-url repository-url
-                                 :repository-path (canonical-repository-path repository-url) } 
+                                 :repository-path (canonical-repository-path repository-url) }
                                 :error-mode :continue)})))
-              repository-url) 
+              repository-url)
        repository-url)))
 
 
 ;### Core Git #################################################################
 
-(defn- create-mirror-clone [url path] 
+(defn- create-mirror-clone [url path]
   (system/exec ["rm" "-rf" path])
   (system/exec-with-success-or-throw
-    ["git" "clone" "--mirror" url path] 
+    ["git" "clone" "--mirror" url path]
     {:add-env {"GIT_SSL_NO_VERIFY" "1"}
      :watchdog (* 60 60 1000)}))
 
 (defn- repository-includes-commit? [path commit-id]
-  "Returns false if there is an exeception!" 
+  "Returns false if there is an exeception!"
   (and (system/exec-with-success?  ["git" "cat-file" "-t" commit-id] {:dir path})
        (system/exec-with-success?  ["git" "ls-tree" commit-id] {:dir path})))
 
 (defn- update [path repository-url]
   (system/exec-with-success-or-throw
-    ["git" "fetch" "--force" "--tags" "--prune" repository-url "+*:*"] 
+    ["git" "fetch" "--force" "--tags" "--prune" repository-url "+*:*"]
     {:dir path
      :add-env {"GIT_SSL_NO_VERIFY" "1"}
      :watchdog (* 3 60 1000)}))
@@ -85,21 +85,21 @@
             (Thread/sleep 250)
             (recur (inc update-count))))))
     (when-not (repository-includes-commit? repository-path commit-id)
-      (throw (IllegalStateException. (str "The git commit is not present." 
+      (throw (IllegalStateException. (str "The git commit is not present."
                                           {:repository-path repository-path :commit-id commit-id}))))
     (conj agent-state {:last-successful-update {:time (time/now) :commit-id commit-id}})))
 
-(defn serialized-initialize-or-update-if-required 
+(defn serialized-initialize-or-update-if-required
   "Returns a absolute path to bare clone which is guaranteed to contain the commit-id."
   [repository-url commit-id]
   (if-not (and repository-url commit-id)
     (throw (java.lang.IllegalArgumentException. "serialized-initialize-or-update-if-required")))
   (-> (let [repository-agent (get-or-create-repository-agent repository-url)
             res-atom (atom nil)
-            fun (fn [agent-state] 
-                  (try 
-                    (reset! res-atom 
-                            (dissoc (initialize-or-update-if-required 
+            fun (fn [agent-state]
+                  (try
+                    (reset! res-atom
+                            (dissoc (initialize-or-update-if-required
                                       agent-state repository-url commit-id)
                                     :exception))
                     (catch Exception e
@@ -118,25 +118,25 @@
 
 
 (defn- clone-to-dir [repository-path commit-id dir]
-  (system/exec-with-success-or-throw 
-    ["git" "clone" "--shared" repository-path dir] 
+  (system/exec-with-success-or-throw
+    ["git" "clone" "--shared" repository-path dir]
     {:watchdog (* 60 1000)})
-  (system/exec-with-success-or-throw 
+  (system/exec-with-success-or-throw
     ["git" "checkout" commit-id]
     {:dir dir})
   true)
 
-(defn serialized-clone-to-dir 
-  "Clones creates a shallow clone in working-dir by referencing a local clone. 
-  Throws an exception if creating of the clone failed." 
+(defn serialized-clone-to-dir
+  "Clones creates a shallow clone in working-dir by referencing a local clone.
+  Throws an exception if creating of the clone failed."
   [repository-url commit-id working-dir]
   (let [repository-path (serialized-initialize-or-update-if-required repository-url commit-id)
         repository-agent (get-or-create-repository-agent repository-url)
         res-atom (atom nil)
-        fun (fn [agent-state] 
+        fun (fn [agent-state]
               (try (clone-to-dir repository-path commit-id  working-dir)
-                   (reset! res-atom 
-                           (-> agent-state 
+                   (reset! res-atom
+                           (-> agent-state
                                (dissoc :exception)
                                (assoc :last-successful-clone {:time (time/now) :working-dir working-dir})))
                    (catch Exception e

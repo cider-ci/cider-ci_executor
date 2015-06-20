@@ -3,7 +3,7 @@
 ; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.result
-  (:import 
+  (:import
     [java.io File]
     [java.util UUID]
     [org.apache.commons.exec ExecuteWatchdog]
@@ -20,18 +20,18 @@
 
 
 (defn file-path-to-result [working-dir]
-  (-> 
+  (->
     (clojure.java.io/file working-dir)
     (fs/absolute)
     (fs/normalized)
     (str "/result.json")))
 
 (defn try-read-and-merge [working-dir params-atom]
-  (catcher/wrap-with-suppress-and-log-debug  
+  (catcher/wrap-with-suppress-and-log-debug
     (let [json-data (-> (file-path-to-result working-dir)
                         slurp
                         json/read-str)]
-      (swap! params-atom 
+      (swap! params-atom
              #(assoc %1 :result %2)
              json-data))
     params-atom))

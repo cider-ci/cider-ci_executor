@@ -19,7 +19,7 @@
   (let [generator (KeyPairGenerator/getInstance  "RSA")
         _  (.initialize generator 2048 (SecureRandom.))
         key-pair (.generateKeyPair generator)
-        cert_gen (X509V3CertificateGenerator.) 
+        cert_gen (X509V3CertificateGenerator.)
         year_in_millis (* 1000 60 60 24 365)
         ]
 
@@ -42,8 +42,8 @@
     keystore-file))
 
 (defn- create-keystore-and-save-certificate [certificate keystore-file]
-  (let [keystore (KeyStore/getInstance "JKS") 
-        cert-alias "Unsigned cider-ciCI Executor Certificate"  
+  (let [keystore (KeyStore/getInstance "JKS")
+        cert-alias "Unsigned cider-ciCI Executor Certificate"
         private-key (.getPrivate (:key-pair certificate))
         password (.toString (java.util.UUID/randomUUID))
         password_char_array (.toCharArray password)
@@ -55,8 +55,8 @@
   ))
 
 (defn create-keystore-with-certificate []
-  "creates a self signed certificate in a keystore-file, 
-  convenient for running a ring adapter with ssl, 
+  "creates a self signed certificate in a keystore-file,
+  convenient for running a ring adapter with ssl,
   returns a map with :password and :file among others"
   (let [certificate (create-certificate)
         keystore-file (create-tmp-keystore-file) ]

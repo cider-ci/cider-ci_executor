@@ -3,7 +3,7 @@
 ; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.attachments
-  (:require 
+  (:require
     [drtom.logbug.debug :as debug]
     [cider-ci.utils.http :as http]
     [drtom.logbug.catcher :as catcher]
@@ -18,16 +18,16 @@
 
 (defn path-post-fix [file abs-working-dir]
   (if (.startsWith (str file) (str abs-working-dir))
-    (apply str (drop (inc (count (str abs-working-dir))) 
+    (apply str (drop (inc (count (str abs-working-dir)))
                      (seq (str file))))
     (apply str (drop 1 (str (fs/normalized (str file)))))
     ))
 
 (defn put-file [file abs-working-dir base-url content-type]
   (catcher/wrap-with-log-error
-    (let [relative (path-post-fix file abs-working-dir) 
+    (let [relative (path-post-fix file abs-working-dir)
           url (str base-url relative)]
-      (logging/debug "putting attachment" 
+      (logging/debug "putting attachment"
                      {:file file :nomalized (fs/normalized file)
                       :name (fs/name file) :base-name (fs/base-name file)
                       :relative relative :url url})
@@ -39,7 +39,7 @@
   (let [abs-working-dir (fs/absolute (fs/file working-dir))]
     (doseq [[_ {glob :glob content-type :content-type}] attachments]
       (fs/with-cwd abs-working-dir
-        (doseq [file (fs/glob glob)] 
+        (doseq [file (fs/glob glob)]
           (put-file file abs-working-dir base-url content-type))))))
 
 ;### Debug ####################################################################

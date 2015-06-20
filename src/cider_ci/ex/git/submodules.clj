@@ -3,7 +3,7 @@
 ; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.git.submodules
-  (:require 
+  (:require
     [cider-ci.ex.git.repository :as repository]
     [cider-ci.utils.config :as config :refer [get-config]]
     [drtom.logbug.debug :as debug]
@@ -17,15 +17,15 @@
 
 
 (defn filter-sha1-chars [s]
-  (-> s 
+  (-> s
       (string/split #"")
       ((fn [s] (filter #(re-matches #"[a-f0-9]" %) s)))
       string/join))
 
 (defn get-commit-id-of-submodule [dir relative-submodule-path]
-  (-> 
-    (system/exec-with-success-or-throw 
-      ["git" "submodule" "status"  relative-submodule-path] 
+  (->
+    (system/exec-with-success-or-throw
+      ["git" "submodule" "status"  relative-submodule-path]
       {:dir dir :watchdog 1000 })
     :out
     string/trim
@@ -43,7 +43,7 @@
 (declare update)
 
 (defn update-submodule [dir path bare-dir]
-  (system/exec-with-success-or-throw 
+  (system/exec-with-success-or-throw
     ["git" "submodule" "update" "--init" "--reference" bare-dir path]
     {:dir dir :watchdog 10000})
   (update (str dir (java.io.File/separator) path)))

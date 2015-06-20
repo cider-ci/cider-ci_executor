@@ -1,14 +1,14 @@
 ; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
-; See the "LICENSE.txt" file provided with this software. 
- 
+; See the "LICENSE.txt" file provided with this software.
+
 (ns cider-ci.ex.fs.last-access-time
-(:import 
+(:import
     [java.io File]
     [java.nio.file Files Paths]
     [java.nio.file.attribute BasicFileAttributes PosixFileAttributes]
     )
-  (:require 
+  (:require
     [cider-ci.utils.config :as config :refer [get-config]]
     [drtom.logbug.debug :as debug]
     [drtom.logbug.catcher :as catcher]
@@ -23,27 +23,27 @@
 
 
 (defn- path-to-posix-attributes [path]
-  (Files/readAttributes path 
-                        PosixFileAttributes  
+  (Files/readAttributes path
+                        PosixFileAttributes
                         (into-array java.nio.file.LinkOption [])))
 
 (defn- to-file [file-or-path]
-  (if (= (type file-or-path) File) 
-    file-or-path 
+  (if (= (type file-or-path) File)
+    file-or-path
     (File. file-or-path)))
 
 (defn- file-last-access-time [_file]
   (let [file (to-file _file)
-        path (.toPath file)] 
+        path (.toPath file)]
     (-> path path-to-posix-attributes .lastAccessTime)))
 
 (defn- creation-time [_file]
   (let [file (to-file _file)
-        path (.toPath file)] 
+        path (.toPath file)]
     (-> path path-to-posix-attributes .creationTime)))
 
-(defn last-access-time 
-  "Returns the last (i.e. most recent) access time 
+(defn last-access-time
+  "Returns the last (i.e. most recent) access time
   of all files within dir."
   [dir]
   (let [paths (file-seq dir)

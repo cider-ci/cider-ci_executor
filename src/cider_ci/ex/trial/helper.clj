@@ -1,7 +1,7 @@
 ; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
-; See the "LICENSE.txt" file provided with this software. 
- 
+; See the "LICENSE.txt" file provided with this software.
+
 (ns cider-ci.ex.trial.helper
   (:require
     [cider-ci.ex.reporter :as reporter]
@@ -25,18 +25,18 @@
 
 (defn get-scripts-atoms [trial]
   (catcher/wrap-with-log-error (->> @(get-params-atom trial)
-                                    :scripts 
+                                    :scripts
                                     (map second))))
 
 (defn get-script-by-name [script-name trial]
-  (catcher/wrap-with-log-error 
+  (catcher/wrap-with-log-error
     (->> (get-scripts-atoms trial)
          (map deref)
          (filter #(= script-name (:name %)))
          first )))
 
 (defn get-script-by-script-key [script-key trial]
-  (catcher/wrap-with-log-error 
+  (catcher/wrap-with-log-error
     (->> (get-scripts-atoms trial)
          (map deref)
          (filter #(= script-key (:key %)))
@@ -44,8 +44,8 @@
 
 
 (defn scripts-done? [trial]
-  (catcher/wrap-with-log-error (->> trial 
-                       get-scripts-atoms 
+  (catcher/wrap-with-log-error (->> trial
+                       get-scripts-atoms
                        (map deref)
                        (map :state)
                        (every? terminal-states))))

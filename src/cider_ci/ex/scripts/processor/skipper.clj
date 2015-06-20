@@ -1,9 +1,9 @@
 ; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
-; See the "LICENSE.txt" file provided with this software. 
+; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.scripts.processor.skipper
-  (:require 
+  (:require
     [cider-ci.ex.scripts.exec :as exec]
     [cider-ci.ex.trial.helper :as trial :refer [get-script-by-script-key]]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
@@ -23,7 +23,7 @@
   x)
 
 (defn- dependency-finished? [params script-atom trial]
-  (boolean 
+  (boolean
     (when-let [depend-on-script (get-script-by-script-key (:script params) trial)]
                (finished? depend-on-script))))
 
@@ -31,7 +31,7 @@
   (not (apply start-when-fulfilled? args)))
 
 (defn- any-unsatisfiable? [script-atom trial]
-  (boolean 
+  (boolean
     (when-let [start-when-conditions (:start-when @script-atom)]
       (->> start-when-conditions
            (debug-pipe ['any-unsatisfiable? 'start-when-conditions])
@@ -43,7 +43,7 @@
            (debug-pipe ['any-unsatisfiable? 'dependency-finished])
            (filter #(unsatisfiable? % script-atom trial))
            (debug-pipe ['any-unsatisfiable? 'not-fulfilled?])
-           empty? 
+           empty?
            not))))
 
 (defn- unsatisfiable-scripts [trial]
@@ -56,11 +56,11 @@
        doall))
 
 (defn- skip-script [script-atom]
-  (swap! script-atom 
+  (swap! script-atom
          (fn [script]
            (if (= "pending" (:state script))
-             (assoc script 
-                    :state "skipped" 
+             (assoc script
+                    :state "skipped"
                     :skipped_at (time/now)
                     :skipped_by "unsatisfiable check")
              script))))

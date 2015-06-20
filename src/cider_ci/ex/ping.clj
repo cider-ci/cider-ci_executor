@@ -1,10 +1,10 @@
 ; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
-; See the "LICENSE.txt" file provided with this software. 
+; See the "LICENSE.txt" file provided with this software.
 ;
 
 (ns cider-ci.ex.ping
-  (:require 
+  (:require
     [cider-ci.ex.traits :as traits]
     [cider-ci.utils.daemon :as daemon]
     [drtom.logbug.debug :as debug]
@@ -25,17 +25,17 @@
 (defn ^:dynamic get-config [] {})
 
 (defn ping []
-  (try 
+  (try
     (let [config (get-config)
           url (build-service-url :dispatcher "/ping")
           traits (into [] (traits/get-traits))
-          max-load (or (:max_load config) 
+          max-load (or (:max_load config)
                        (.availableProcessors(Runtime/getRuntime)))
           data {:traits traits
                 :max_load max-load}]
       (http/post url {:body (json/write-str data)})
       (Thread/sleep (* 1000 3)))
-    (catch Exception e 
+    (catch Exception e
       (logging/warn "ping to url failed " e))))
 
 (daemon/define "ping" start-ping stop-ping 3

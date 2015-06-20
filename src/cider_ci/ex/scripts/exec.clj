@@ -2,11 +2,11 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software.
 (ns cider-ci.ex.scripts.exec
-  (:import 
+  (:import
     [org.apache.commons.exec ExecuteWatchdog]
     [java.io File]
     )
-  (:require 
+  (:require
     [cider-ci.ex.scripts.exec.terminator :refer [terminate create-watchdog preper-terminate-script-prefix]]
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.fs :as ci-fs]
@@ -24,14 +24,14 @@
 (defn- working-dir [params]
   (.getAbsolutePath (File. (:working_dir params))))
 
-; TODO: 
+; TODO:
 ; * remove (or ... ) not needed with conj
 (defn- prepare-env-variables [params]
   (->> (conj { }
-             {:CIDER_CI_WORKING_DIR (working-dir params)} 
-             (or (:ports params) {}) 
+             {:CIDER_CI_WORKING_DIR (working-dir params)}
+             (or (:ports params) {})
              (or (:environment-variables params) {}))
-       (filter (fn [[k v]] (not= nil v))) 
+       (filter (fn [[k v]] (not= nil v)))
        (map (fn [[k v]] [(name k) (str v)]))
        (map (fn [[k v]] [(string/upper-case k) v])) ; TODO,  remove this with Cider-CI version 3.0.0
        (into {})))
@@ -68,36 +68,36 @@
         wrapper-file (doto (File/createTempFile "cider-ci_", ".command_wrapper")
                        .deleteOnExit
                        (.setExecutable true false)
-                       (spit  (str (preper-terminate-script-prefix params) 
-                                   "cd '" working-dir "' " 
+                       (spit  (str (preper-terminate-script-prefix params)
+                                   "cd '" working-dir "' "
                                    "&& " (.getAbsolutePath (:script-file params)))))]
     (logging/debug {:WRAPPER-FILE (.getAbsolutePath wrapper-file)})
     (.getAbsolutePath wrapper-file)))
 
 (defn- command [params]
-  (flatten (concat (interpreter (sudo-env (:environment-variables params))) 
+  (flatten (concat (interpreter (sudo-env (:environment-variables params)))
                    [(create-command-wrapper-file params)])))
 
 (defn- commons-exec-sh [command env-variables watchdog]
-  (commons-exec/sh 
-    command 
+  (commons-exec/sh
+    command
     {:env (conj {} (System/getenv) env-variables)
      :watchdog watchdog }))
 
 (defn exec-sh [params]
   (let [command (command params)]
-    (commons-exec-sh command 
+    (commons-exec-sh command
                      (:environment-variables params)
                      (:watchdog params))))
 
 (defn- get-final-parameters [exec-res]
   {:finished_at (time/now)
    :exit_status (:exit exec-res)
-   :state (condp = (:exit exec-res) 
-            0 "passed" 
+   :state (condp = (:exit exec-res)
+            0 "passed"
             "failed")
    :stdout (:out exec-res)
-   :stderr (:err exec-res) 
+   :stderr (:err exec-res)
    :error (:error exec-res)
    })
 
@@ -110,7 +110,7 @@
                    {:state "failed"
                     :finished_at (time/now)
                     :error e-str }))
-           e-str ))) 
+           e-str )))
 
 (def ^:private debug-recent-execs (atom '()))
 (defn- debug-recent-execs-push [exec]
@@ -122,7 +122,7 @@
              started-at (time/now)
              watchdog (create-watchdog)]
          (logging/debug "TIMEOUT" timeout)
-         (swap! script-atom 
+         (swap! script-atom
                 (fn [params watchdog started-at]
                   (conj params
                         {:started_at started-at
@@ -135,11 +135,11 @@
          (let [exec-future (exec-sh @script-atom)]
            (loop []
              (logging/debug 'eval-termination @script-atom)
-             (when 
+             (when
                (and (not (realized? exec-future))
-                    (or 
+                    (or
                       (:terminate @script-atom)
-                      (time/after? (time/now) 
+                      (time/after? (time/now)
                                    (time/plus started-at (time/seconds timeout)))))
                (terminate exec-future script-atom))
              (when-not (realized? exec-future)

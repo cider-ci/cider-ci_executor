@@ -3,10 +3,10 @@
 ; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.git
-  (:import 
+  (:import
     [java.io File]
     )
-  (:require 
+  (:require
     [cider-ci.ex.git.repository :as repository]
     [cider-ci.ex.git.submodules :as submodules]
     [cider-ci.utils.config :as config :refer [get-config]]
@@ -34,7 +34,7 @@
     (assert (not (blank? working-dir-id)))
     (assert (not (blank? commit-id)))
     (assert (not (blank? repository-url)))
-    (let [working-dir (-> (str (:working_dir (get-config)) 
+    (let [working-dir (-> (str (:working_dir (get-config))
                                (File/separator) working-dir-id)
                           fs/absolute
                           fs/normalized

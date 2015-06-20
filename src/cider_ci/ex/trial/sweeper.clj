@@ -1,9 +1,9 @@
 ; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
-; See the "LICENSE.txt" file provided with this software. 
- 
+; See the "LICENSE.txt" file provided with this software.
+
 (ns cider-ci.ex.trial.sweeper
-  (:require 
+  (:require
     [cider-ci.ex.fs.last-access-time :refer [last-access-time]]
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.daemon :as daemon]
@@ -15,7 +15,7 @@
     [clojure.tools.logging :as logging]
     [me.raynes.fs :as clj-fs]
     )
-  (:import 
+  (:import
     [java.io File]
     [java.nio.file Files Paths]
     [java.nio.file.attribute BasicFileAttributes PosixFileAttributes]
@@ -35,9 +35,9 @@
                     30)))
 
 (defn- to-be-deleted? [dir]
-  (time/before?  
+  (time/before?
     (last-access-time dir)
-    (time/minus (time/now) 
+    (time/minus (time/now)
                 (get-trial-dir-retention-period))))
 
 (defn- trial-dirs-to-be-deleted []
@@ -46,7 +46,7 @@
        (filter to-be-deleted?)))
 
 (defn- delete [dir]
-  (catcher/wrap-with-suppress-and-log-warn 
+  (catcher/wrap-with-suppress-and-log-warn
     (clj-fs/delete-dir dir)))
 
 (defn- delete-out-of-date-trial-dirs []
@@ -54,7 +54,7 @@
     (delete dir)))
 
 
-(daemon/define "trial-working-dir-sweeper" 
+(daemon/define "trial-working-dir-sweeper"
   start-trial-working-dir-sweeper
   stop-trial-working-dir-sweeper
   60

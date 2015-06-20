@@ -1,9 +1,9 @@
 ; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
-; See the "LICENSE.txt" file provided with this software. 
+; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.scripts.processor
-  (:require 
+  (:require
     [cider-ci.ex.scripts.exec :as exec]
     [cider-ci.ex.scripts.processor.patch :as patch]
     [cider-ci.ex.scripts.processor.skipper :refer [skip-scripts]]
@@ -27,19 +27,19 @@
 
 (defn- touch [trial]
   ; touch a file in the working dir every minute during execution so the
-  ; working dir will not be removed prematurely by the sweeper 
-  (when (= 0  (-> (System/currentTimeMillis) (/ 1000) double int (mod 60))) 
+  ; working dir will not be removed prematurely by the sweeper
+  (when (= 0  (-> (System/currentTimeMillis) (/ 1000) double int (mod 60)))
     (commons-exec/sh ["touch" "._cider-ci.executing"]
                      {:dir (-> trial :params-atom deref :working_dir)})))
 
 ;###############################################################################
 
 (defn- skip-script [script-atom]
-  (swap! script-atom 
+  (swap! script-atom
          (fn [script]
            (if (= "pending" (:state script))
-             (assoc script 
-                    :state "skipped" 
+             (assoc script
+                    :state "skipped"
                     :skipped_at (time/now)
                     :skipped_by "leftover check")
              script))))
@@ -60,7 +60,7 @@
 ;###############################################################################
 
 (defn process [trial]
-  (try 
+  (try
     (trigger/add-watchers trial)
     (patch/add-watchers trial)
     (trigger/trigger trial "initial")
@@ -70,23 +70,23 @@
       (let [scripts-atoms (trial/get-scripts-atoms trial)]
         (when (and (not (every? finished? scripts-atoms))
                    (or (some executing-or-waiting? scripts-atoms)
-                       ; give the triggers a chance to evaluate: 
-                       (not-empty (->> scripts-atoms 
+                       ; give the triggers a chance to evaluate:
+                       (not-empty (->> scripts-atoms
                                        (filter finished?)
-                                       (filter #(finished-less-then-x-ago? 
+                                       (filter #(finished-less-then-x-ago?
                                                   @% (time/seconds 1)))))))
           (recur))))
     trial
-    (finally 
-      (catcher/wrap-with-suppress-and-log-warn 
+    (finally
+      (catcher/wrap-with-suppress-and-log-warn
         (trigger/remove-watchers trial))
-      (catcher/wrap-with-suppress-and-log-warn 
+      (catcher/wrap-with-suppress-and-log-warn
         (set-skipped-state-if-not-finnished trial))
-      (catcher/wrap-with-suppress-and-log-warn 
+      (catcher/wrap-with-suppress-and-log-warn
         (future (Thread/sleep (* 60 1000) (patch/remove-watchers trial)))))))
 
 (defn abort [trial-id]
-  ; TODO 
+  ; TODO
   )
 
 ;### Debug ####################################################################

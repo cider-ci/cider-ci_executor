@@ -1,9 +1,9 @@
 ; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
-; See the "LICENSE.txt" file provided with this software. 
+; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.scripts.processor.terminator
-  (:require 
+  (:require
     [cider-ci.ex.scripts.exec :as exec]
     [cider-ci.ex.trial.helper :as trial]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
@@ -26,9 +26,9 @@
 
 (defn- terminate-when-all-fulfilled? [script-atom trial]
   (catcher/wrap-with-log-error
-    (boolean 
+    (boolean
       (when-let [terminators (not-empty (:terminate-when @script-atom))]
-        (every?  #(terminate-when-fulfilled? % script-atom trial) 
+        (every?  #(terminate-when-fulfilled? % script-atom trial)
                 (-> terminators convert-to-array))))))
 
 (defn- log-seq [msg seq]

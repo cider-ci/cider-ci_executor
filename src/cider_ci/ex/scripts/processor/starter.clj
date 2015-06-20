@@ -1,9 +1,9 @@
 ; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
-; See the "LICENSE.txt" file provided with this software. 
+; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.scripts.processor.starter
-  (:require 
+  (:require
     [cider-ci.ex.scripts.exec :as exec]
     [cider-ci.ex.trial.helper :as trial]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
@@ -32,24 +32,24 @@
 
 (defn- start-when-all-fulfilled? [script-a trial]
   (catcher/wrap-with-log-error
-    (every?  
-      #(start-when-fulfilled? % script-a trial) 
-      (->> @script-a 
-          :start-when 
+    (every?
+      #(start-when-fulfilled? % script-a trial)
+      (->> @script-a
+          :start-when
           convert-to-array
           (map amend-with-start-when-defaults)))))
 
 (defn- scripts-atoms-to-be-started [trial]
   (catcher/wrap-with-log-error
     (->> (trial/get-scripts-atoms trial)
-         (filter #(-> % deref pending? )) 
+         (filter #(-> % deref pending? ))
          (filter #(start-when-all-fulfilled? % trial)))))
 
 (defn- exec?
-  "Determines if the script should be executed from this thread/scope. 
-  Sets the state to dispatched and returns true if so. 
+  "Determines if the script should be executed from this thread/scope.
+  Sets the state to dispatched and returns true if so.
   Returns false otherwise. "
-  [script-atom] 
+  [script-atom]
   (let [r (str (.getId (Thread/currentThread)) "_" (rand))
         swap-in-fun (fn [script]
                       (if (= (:state script) "pending"); we will exec if it is still pending
@@ -72,7 +72,7 @@
              (fn [exclusive-resource-agents agent-name]
                (if (get exclusive-resource-agents agent-name)
                  exclusive-resource-agents
-                 (assoc exclusive-resource-agents 
+                 (assoc exclusive-resource-agents
                         agent-name (create-execlusive-resource-agent agent-name))))
              agent-name)
       (get agent-name)))
@@ -81,13 +81,13 @@
 (defn exec-inside-agent [agent-state script-atom]
   (when (= "waiting" (:state @script-atom))
     (exec/execute script-atom))
-  (assoc agent-state 
+  (assoc agent-state
          :last_finished_at (time/now)
          :last_script @script-atom))
 
 (defn dispatch [script-atom]
   (if-let [exclusive-resource (:exclusive-executor-resource @script-atom)]
-    (send-off (get-exclusive-resource-agent exclusive-resource) 
+    (send-off (get-exclusive-resource-agent exclusive-resource)
               exec-inside-agent script-atom)
     (future (exec/execute script-atom))))
 

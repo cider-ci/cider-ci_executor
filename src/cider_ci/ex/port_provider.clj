@@ -1,9 +1,9 @@
 ; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
-; See the "LICENSE.txt" file provided with this software. 
- 
+; See the "LICENSE.txt" file provided with this software.
+
 (ns cider-ci.ex.port-provider
-  (:import 
+  (:import
     [java.net ServerSocket DatagramSocket InetAddress]
     )
   (:require
@@ -22,11 +22,11 @@
 ; (release-port 3000)
 ; (occupy-port "localhost" 3000 3001)
 
-; see 
+; see
 ; http://stackoverflow.com/questions/434718/sockets-discover-port-availability-using-java
 ; however, it seem rather unreliable to detect ports that are already used.
 ;
-(defn occupy-port 
+(defn occupy-port
   "Tries to find an unoccupied and unused port in the range [range-min
   range-max]. Inet-address can be a hostname, ipv4, or ipv6 address. Including
   the 'listen to all', e.g. '0.0.0.0'.  Returns the port as an integer if
@@ -41,13 +41,13 @@
    (assert (< range-min range-max))
 
    (if (> retry 10)
-     (throw (IllegalStateException. 
+     (throw (IllegalStateException.
               (str "No unoccupied and unused port was found in the range " range-min " to " range-max))))
 
    (let [port (+ range-min (rand-int (+ 1 (- range-max range-min))))]
      (if (contains?  @occupied-ports-atom port)
        (occupy-port inet-address range-min range-max (inc retry))
-       (try 
+       (try
          (logging/debug "testing port " port)
          (with-open [ss (ServerSocket. port 10 (InetAddress/getByName inet-address))
                      ds (DatagramSocket. port (InetAddress/getByName inet-address))]

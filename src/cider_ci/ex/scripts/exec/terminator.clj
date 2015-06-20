@@ -3,11 +3,11 @@
 ; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.scripts.exec.terminator
-  (:import 
+  (:import
     [org.apache.commons.exec ExecuteWatchdog]
     [java.io File]
     )
-  (:require 
+  (:require
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.fs :as ci-fs]
     [clj-commons-exec :as commons-exec]
@@ -28,13 +28,13 @@
 ; sub-shell.  On Linux and MacOS we recursively find all subprocesses via `ps`,
 ; see also `ps axf -o user,pid,ppid,pgrp,args`, and then kill those. This works
 ; well unless double forks are used which are nearly impossible to track with
-; reasonable effort. 
+; reasonable effort.
 
 (defn create-watchdog []
   (ExecuteWatchdog. (ExecuteWatchdog/INFINITE_TIMEOUT) ))
 
 (defn- get-child-pids-linux [pids]
-  (try (-> (commons-exec/sh 
+  (try (-> (commons-exec/sh
              ["ps" "--no-headers" "-o" "pid" "--ppid" (clojure.string/join "," pids)])
            deref
            :out
@@ -48,7 +48,7 @@
 (defn- get-child-pids-mac-os [pids]
   (try (->> (-> (commons-exec/sh ["ps" "x" "-o" "pid ppid"])
                 deref
-                :out 
+                :out
                 trim
                 (split #"\n")
                 (#(map trim %))
@@ -75,7 +75,7 @@
     (if (= pids result-pids)
       result-pids
       (add-descendant-pids result-pids))))
-        
+
 
 (defn- pid-file-path [params]
   (let [working-dir  (-> params :working_dir)
@@ -83,21 +83,21 @@
     (str working-dir (File/separator) "._cider-ci_" (ci-fs/path-proof script-name) ".pid")))
 
 (defn- terminate-via-process-tree [exec-future script-atom]
-  (let [working-dir  (-> script-atom deref :working_dir) 
+  (let [working-dir  (-> script-atom deref :working_dir)
         pid (-> (pid-file-path @script-atom) slurp clojure.string/trim)
         pids (add-descendant-pids #{pid})
         descendant-pids (difference pids #{pid})]
-    (commons-exec/sh  
+    (commons-exec/sh
       (concat ["kill" "-KILL"]
               (into [] descendant-pids)))))
 
 (defn- terminate-via-commons-exec-watchdog [exec-future script-atom]
-  (.destroyProcess (:watchdog @script-atom))) 
+  (.destroyProcess (:watchdog @script-atom)))
 
 (defn terminate [exec-future script-atom]
   (case (System/getProperty "os.name")
-    ("Linux" "Mac OS X")(terminate-via-process-tree exec-future script-atom) 
-    (terminate-via-commons-exec-watchdog exec-future script-atom) 
+    ("Linux" "Mac OS X")(terminate-via-process-tree exec-future script-atom)
+    (terminate-via-commons-exec-watchdog exec-future script-atom)
     ))
 
 (defn preper-terminate-script-prefix [params]

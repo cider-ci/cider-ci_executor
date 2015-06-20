@@ -1,9 +1,9 @@
 ; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
-; See the "LICENSE.txt" file provided with this software. 
+; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.web
-  (:require 
+  (:require
     [cider-ci.auth.core :as auth]
     [cider-ci.auth.http-basic :as http-basic]
     [cider-ci.ex.certificate :as certificate]
@@ -34,13 +34,13 @@
 (defn say-hello []
   (str "<h1>Hello!</h1>"))
 
-(defn ping [] 
+(defn ping []
   (logging/debug "pinging back")
   {:status 204})
 
 (defn execute [request]
   (logging/info (str "received job request: " request))
-  (try 
+  (try
     (let [trial-parameters  (clojure.walk/keywordize-keys (:json-params request))]
       (when-not (:trial_id trial-parameters) (throw (IllegalStateException. ":trial_id parameter must be present")))
       (when-not (:patch_path trial-parameters) (throw (IllegalStateException. ":patch_path parameter must be present")))
@@ -52,14 +52,14 @@
 
 (defn get-trials []
   (let [trials (trial/get-trials)]
-    {:status 200 
+    {:status 200
      :headers {"Content-Type" "application/json"}
      :body (json/write-str trials)}
-    )) 
+    ))
 
 (defn get-trial [id]
   (if-let [trial (trial/get-trial id)]
-    {:status 200 
+    {:status 200
      :headers {"Content-Type" "application/json"}
      :body (json/write-str trial)}
     {:status 404}))
@@ -75,7 +75,7 @@
                  (cpj/GET "/trials" [] (get-trials))
                  (cpj/GET "/trials/:id" [id] (get-trial id)))))
 
-;##### handler and routing ############################################################## 
+;##### handler and routing ##############################################################
 
 (defn build-main-handler [context]
   ( -> (compojure.handler/api (build-routes context))
@@ -103,15 +103,15 @@
   "Starts (or stops and then starts) the webserver"
   (let [keystore (certificate/create-keystore-with-certificate)
         path (.getAbsolutePath (:file keystore))
-        password (:password keystore) 
-        server-conf (conj {:ssl? true 
+        password (:password keystore)
+        server-conf (conj {:ssl? true
                            :keystore path
                            :key-password password
-                           :join? false} 
+                           :join? false}
                           (select-keys (:http @conf) [:port :host :ssl-port])) ]
-    (if server (stop-server)) 
+    (if server (stop-server))
     (logging/info "starting server" server-conf)
-    (def server (jetty/run-jetty 
+    (def server (jetty/run-jetty
                   (build-main-handler nil)
                   server-conf))))
 

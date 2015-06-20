@@ -1,20 +1,20 @@
-nrepl: 
+nrepl:
   port: 7883
   bind: "127.0.0.1"
   enabled: true
 
-http: 
+http:
   host: localhost
   port: 8883
   ssl-port: 8443
 
 name: DemoExecutor
 
-basic_auth: 
-  username: DemoExecutor 
-  password: 5cfc3c91599a118ec0c67a6f2c15e7456cea71fa 
+basic_auth:
+  username: DemoExecutor
+  password: 5cfc3c91599a118ec0c67a6f2c15e7456cea71fa
 
-reporter: 
+reporter:
   max_retries: 1
   retry_ms_factor: 1000
 

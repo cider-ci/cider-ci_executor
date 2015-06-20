@@ -1,9 +1,9 @@
 ; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
-; See the "LICENSE.txt" file provided with this software. 
- 
+; See the "LICENSE.txt" file provided with this software.
+
 (ns cider-ci.ex.trial
-  (:import 
+  (:import
     [java.io File ]
     )
   (:require
@@ -31,19 +31,19 @@
 
 
 ;#### prepare trial ###########################################################
-(defn- set-and-send-start-params [trial] 
+(defn- set-and-send-start-params [trial]
   (let [params-atom (get-params-atom trial)
         report-agent (:report-agent trial)]
-    (swap! params-atom (fn [params] (conj params {:state "executing"}))) 
+    (swap! params-atom (fn [params] (conj params {:state "executing"})))
     (send-patch-via-agent trial (select-keys @params-atom [:state :started_at])))
   trial)
 
 (defn- prepare-script [k script-params trial-params]
   (atom (conj {}
               (deep-merge (select-keys trial-params
-                                       [:environment-variables 
-                                        :job_id 
-                                        :trial_id 
+                                       [:environment-variables
+                                        :job_id
+                                        :trial_id
                                         :working_dir])
                           script-params)
               (when-not (:name script-params)
@@ -64,7 +64,7 @@
 ;#### manage trials ###########################################################
 (def ^:private trials-atom (atom {}))
 
-(defn get-trials [] 
+(defn get-trials []
   "Retrieves the received and not yet discarded trials"
   (flatten (map (fn [t] [(:params-atom (second t))])
        (seq @trials-atom))))
@@ -73,12 +73,12 @@
   (when-let [trial (@trials-atom id)]
     (:params-atom trial)))
 
-(defn- create-trial   
+(defn- create-trial
   "Creates a new trial, stores it in trials under its id and returns the trial"
   [params]
   (let [id (:trial_id params)
         params (assoc params :started_at (time/now))]
-    (swap! trials-atom 
+    (swap! trials-atom
            (fn [trials params id]
              (conj trials {id {:params-atom (atom  params)
                                :report-agent (agent [] :error-mode :continue)}}))
@@ -90,25 +90,25 @@
 ;#### stuff ###################################################################
 
 (defn- create-and-insert-working-dir [trial]
-  "Creates a working dir (populated with the checked out git repo), 
+  "Creates a working dir (populated with the checked out git repo),
   adds the :working_dir key to the params-atom and sets the corresponding
   value. Returns the (modified) trial)"
   (let [params-atom (get-params-atom trial)
         working-dir (git/prepare-and-create-working-dir @params-atom)]
-    (swap! params-atom 
+    (swap! params-atom
            #(assoc %1 :working_dir %2)
            working-dir))
   trial)
 
 (defn- occupy-and-insert-ports [trial]
-  "Occupies free ports according to the :ports directive, 
-  adds the corresponding :ports value to each script and 
+  "Occupies free ports according to the :ports directive,
+  adds the corresponding :ports value to each script and
   also returns the ports."
   (let [params-atom (get-params-atom trial)
-        ports (into {} (map (fn [[port-name port-params]] 
-                              [port-name (port-provider/occupy-port 
-                                           (or (:inet_address port-params) "localhost") 
-                                           (:min port-params) 
+        ports (into {} (map (fn [[port-name port-params]]
+                              [port-name (port-provider/occupy-port
+                                           (or (:inet_address port-params) "localhost")
+                                           (:min port-params)
                                            (:max port-params))])
                             (:ports @params-atom)))]
     (doseq [script-atom (get-scripts-atoms trial)]
@@ -118,11 +118,11 @@
 (defn put-attachments [trial]
   (let [params-atom (get-params-atom trial)
         working-dir (get-working-dir trial)]
-    (attachments/put working-dir 
-                     (:trial-attachments @params-atom) 
+    (attachments/put working-dir
+                     (:trial-attachments @params-atom)
                      (build-server-url (:trial-attachments-path @params-atom)))
-    (attachments/put working-dir 
-                     (:tree-attachments @params-atom) 
+    (attachments/put working-dir
+                     (:tree-attachments @params-atom)
                      (build-server-url (:tree-attachments-path @params-atom))))
   trial)
 
@@ -132,7 +132,7 @@
                       (every? #(= "passed" (-> % deref :state))))
         final-state (if passed? "passed" "failed")]
     (swap! (get-params-atom trial)
-           #(conj %1 {:state %2, :finished_at (time/now)}) 
+           #(conj %1 {:state %2, :finished_at (time/now)})
            final-state))
   trial)
 
@@ -153,14 +153,14 @@
 
 
 ;#### execute #################################################################
-(defn execute [params] 
+(defn execute [params]
   (logging/info execute [params])
   (let [trial (create-trial params)]
     (try (->> trial
               create-and-insert-working-dir
               prepare-and-insert-scripts)
          (let [ports (occupy-and-insert-ports trial)]
-           (try (->> trial 
+           (try (->> trial
                      set-and-send-start-params
                      cider-ci.ex.scripts.processor/process
                      put-attachments
@@ -171,9 +171,9 @@
                          trial)))
          (catch Exception e
            (let [e-str (thrown/stringify e)]
-             (swap! (get-params-atom trial) 
-                    (fn [params] (conj params 
-                                       {:state "failed", 
+             (swap! (get-params-atom trial)
+                    (fn [params] (conj params
+                                       {:state "failed",
                                         :finished_at (time/now)
                                         :error e-str })))
              (logging/error e-str)

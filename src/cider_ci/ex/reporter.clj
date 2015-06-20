@@ -1,5 +1,5 @@
 (ns cider-ci.ex.reporter
-  (:require 
+  (:require
     [cider-ci.ex.json]
     [drtom.logbug.debug :as debug]
     [cider-ci.utils.http :as http]
@@ -25,12 +25,12 @@
   (let [body (json/write-str params)
         params  {:insecure? true
                  :content-type :json
-                 :accept :json 
+                 :accept :json
                  :body body} ]
     (logging/debug "PATCH: " params)
     (http/patch url params)))
 
-(defn patch-as-json-with-retries 
+(defn patch-as-json-with-retries
   ([url params]
    (patch-as-json-with-retries url params (:max_retries @conf)))
   ([url params max-retries]
@@ -42,7 +42,7 @@
                   (catch Exception e
                     (logging/warn "failed " (inc retry) " time to PATCH to " url " with error: " e)
                     {:url url :params params, :send-status "failed" :error e}))]
-       (if (= (:send-status res) "success") 
+       (if (= (:send-status res) "success")
          res
          (if (>= retry max-retries)
            res
@@ -51,7 +51,7 @@
 
 ;### Initialize ###############################################################
 (defn initialize [new-conf]
-  (reset! conf (deep-merge @conf 
+  (reset! conf (deep-merge @conf
                            new-conf)))
 
 

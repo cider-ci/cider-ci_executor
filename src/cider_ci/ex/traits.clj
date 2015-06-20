@@ -1,10 +1,10 @@
 ; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
 ; Licensed under the terms of the GNU Affero General Public License v3.
-; See the "LICENSE.txt" file provided with this software. 
+; See the "LICENSE.txt" file provided with this software.
 ;
 
 (ns cider-ci.ex.traits
-  (:require 
+  (:require
     [clj-yaml.core :as yaml]
     [cider-ci.utils.config-loader :as config-loader]
     [cider-ci.utils.daemon :as daemon]
@@ -18,14 +18,14 @@
 
 (defonce ^:private traits (atom (sorted-set)))
 
-(defn get-traits [] 
+(defn get-traits []
   @traits)
 
 (defn- set-traits [new-traits]
   (when-not (= new-traits @traits)
     (reset! traits new-traits)
     (logging/info "traits changed to " @traits)))
-    
+
 
 (defn- read-traits [filenames]
   (loop [traits (sorted-set)
@@ -48,7 +48,7 @@
 
 
 ;(read-traits ["./config/traits_default.txt" "./config/traits.txt"])
-        
+
 (daemon/define "reload-traits" start-read-traits stop-read-traits 1
   (-> (read-traits ["/etc/cider-ci/traits.txt" "./config/traits_default.txt" "./config/traits.txt"])
       set-traits))
