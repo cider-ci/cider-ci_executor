@@ -8,6 +8,7 @@
     [java.io File]
     )
   (:require
+    [cider-ci.ex.accepted-repositories :as accepted-repositories]
     [cider-ci.ex.ping :as ping]
     [cider-ci.ex.reporter :as reporter]
     [cider-ci.ex.traits :as traits]
@@ -23,6 +24,7 @@
     [drtom.logbug.debug :as debug]
     [drtom.logbug.thrown]
     ))
+
 
 
 (defn working-dir []
@@ -49,6 +51,7 @@
     (let [conf (config/get-config)]
       (logging/info conf)
       (traits/initialize)
+      (accepted-repositories/initialize)
       (nrepl/initialize (-> conf  :nrepl ))
       (http/initialize {:basic_auth (-> conf :basic_auth)})
       (initialize)

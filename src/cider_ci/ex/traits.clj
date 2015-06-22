@@ -5,15 +5,16 @@
 
 (ns cider-ci.ex.traits
   (:require
-    [clj-yaml.core :as yaml]
+    [cider-ci.ex.utils :refer [read-tags-from-files]]
     [cider-ci.utils.config-loader :as config-loader]
     [cider-ci.utils.daemon :as daemon]
-    [drtom.logbug.debug :as debug]
     [cider-ci.utils.map :refer [deep-merge]]
-    [clojure.string :refer [blank? lower-case split trim]]
-    [clojure.set :refer [union]]
-    [clojure.tools.logging :as logging]
+    [clj-yaml.core :as yaml]
     [clojure.java.io :as io]
+    [clojure.set :refer [union]]
+    [clojure.string :refer [blank? lower-case split trim]]
+    [clojure.tools.logging :as logging]
+    [drtom.logbug.debug :as debug]
     ))
 
 (defonce ^:private traits (atom (sorted-set)))
@@ -27,34 +28,12 @@
     (logging/info "traits changed to " @traits)))
 
 
-(defn- read-traits [filenames]
-  (loop [traits (sorted-set)
-         filenames filenames]
-    (if-let [filename (first filenames)]
-      (if (.exists (io/as-file filename))
-        (recur (try (let [add-on-string (slurp filename)]
-                      (-> add-on-string
-                          lower-case
-                          (split #",")
-                          (#(map trim %))
-                          (#(remove blank? %))
-                          (#(union traits (apply sorted-set %)))))
-                    (catch Exception e
-                      (logging/warn "Failed to read " filename " because " e)
-                      traits))
-               (rest filenames))
-        (recur traits (rest filenames)))
-      traits)))
-
-
-;(read-traits ["./config/traits_default.txt" "./config/traits.txt"])
-
 (daemon/define "reload-traits" start-read-traits stop-read-traits 1
-  (-> (read-traits ["/etc/cider-ci/traits.txt" "./config/traits_default.txt" "./config/traits.txt"])
+  (-> (read-tags-from-files ["/etc/cider-ci/traits.txt"
+                             "./config/traits_default.txt"
+                             "./config/traits.txt"])
       set-traits))
-
 
 (defn initialize []
   (stop-read-traits)
-  (start-read-traits)
-  )
+  (start-read-traits))

@@ -5,6 +5,7 @@
 (ns cider-ci.ex.web
   (:require
     [cider-ci.auth.core :as auth]
+    [cider-ci.ex.accepted-repositories :as accepted-repositories]
     [cider-ci.auth.http-basic :as http-basic]
     [cider-ci.ex.certificate :as certificate]
     [cider-ci.ex.trial :as trial]
@@ -39,11 +40,12 @@
   {:status 204})
 
 (defn execute [request]
-  (logging/info (str "received job request: " request))
+  (logging/info (str "received trial request: " request))
   (try
     (let [trial-parameters  (clojure.walk/keywordize-keys (:json-params request))]
       (when-not (:trial_id trial-parameters) (throw (IllegalStateException. ":trial_id parameter must be present")))
       (when-not (:patch_path trial-parameters) (throw (IllegalStateException. ":patch_path parameter must be present")))
+      (accepted-repositories/satisfied! (:git_url trial-parameters))
       (future (trial/execute trial-parameters))
       {:status 204})
     (catch Exception e
