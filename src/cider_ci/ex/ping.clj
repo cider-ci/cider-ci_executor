@@ -5,6 +5,7 @@
 
 (ns cider-ci.ex.ping
   (:require
+    [cider-ci.ex.accepted-repositories :as accepted-repositories]
     [cider-ci.ex.traits :as traits]
     [cider-ci.utils.daemon :as daemon]
     [drtom.logbug.debug :as debug]
@@ -32,7 +33,9 @@
           max-load (or (:max_load config)
                        (.availableProcessors(Runtime/getRuntime)))
           data {:traits traits
-                :max_load max-load}]
+                :max_load max-load
+                :accepted-repositories (accepted-repositories/get-accepted-repositories)
+                }]
       (http/post url {:body (json/write-str data)})
       (Thread/sleep (* 1000 3)))
     (catch Exception e
