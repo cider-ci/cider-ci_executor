@@ -7,23 +7,17 @@
   (:require
     [cider-ci.ex.accepted-repositories :as accepted-repositories]
     [cider-ci.ex.traits :as traits]
+    [cider-ci.utils.config :refer [get-config]]
     [cider-ci.utils.daemon :as daemon]
-    [drtom.logbug.debug :as debug]
     [cider-ci.utils.http :as http :refer [build-service-url]]
     [cider-ci.utils.map :refer [deep-merge]]
     [clj-yaml.core :as yaml]
+    [clojure.data.json :as json]
     [clojure.java.io :as io]
     [clojure.tools.logging :as logging]
-    [clojure.data.json :as json]
+    [drtom.logbug.debug :as debug]
     ))
 
-
-;Runtime.getRuntime().availableProcessors();
-;(.availableProcessors(Runtime/getRuntime))
-
-
-
-(defn ^:dynamic get-config [] {})
 
 (defn ping []
   (try
@@ -34,8 +28,9 @@
                        (.availableProcessors(Runtime/getRuntime)))
           data {:traits traits
                 :max_load max-load
-                :accepted-repositories (accepted-repositories/get-accepted-repositories)
+                :accepted_repositories (accepted-repositories/get-accepted-repositories)
                 }]
+      (logging/info data)
       (http/post url {:body (json/write-str data)})
       (Thread/sleep (* 1000 3)))
     (catch Exception e
@@ -44,6 +39,5 @@
 (daemon/define "ping" start-ping stop-ping 3
   (ping))
 
-(defn initialize [get-config-fn]
-  (def ^:dynamic get-config get-config-fn)
+(defn initialize []
   (start-ping))

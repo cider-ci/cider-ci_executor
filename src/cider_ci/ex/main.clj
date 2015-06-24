@@ -57,7 +57,7 @@
       (initialize)
       (web/initialize {:basic_auth (basic-auth)
                        :http (-> conf :http)})
-      (ping/initialize config/get-config)
+      (ping/initialize)
       (cider-ci.ex.trial.sweeper/initialize)
       )))
 
