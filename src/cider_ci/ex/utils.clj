@@ -21,7 +21,6 @@
       (if (.exists (io/as-file filename))
         (recur (try (let [add-on-string (slurp filename)]
                       (-> add-on-string
-                          lower-case
                           (split #",")
                           (#(map trim %))
                           (#(remove blank? %))
