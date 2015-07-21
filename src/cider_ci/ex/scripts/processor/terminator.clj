@@ -5,7 +5,7 @@
 (ns cider-ci.ex.scripts.processor.terminator
   (:require
     [cider-ci.ex.scripts.exec :as exec]
-    [cider-ci.ex.trial.helper :as trial]
+    [cider-ci.ex.trials.helper :as trials]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
     [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
     [clj-commons-exec :as commons-exec]
@@ -20,7 +20,7 @@
 (defn- terminate-when-fulfilled? [params script-atom trial]
   (catcher/wrap-with-log-error
     (let [script-key (:script params)
-          script (trial/get-script-by-script-key script-key trial)
+          script (trials/get-script-by-script-key script-key trial)
           state (:state script)]
       (some #{state} (:states params)))))
 
@@ -37,7 +37,7 @@
 
 (defn set-terminate-scripts  [trial]
   (catcher/wrap-with-log-error
-    (->> (trial/get-scripts-atoms trial)
+    (->> (trials/get-scripts-atoms trial)
          ;(log-seq 'script-atoms)
          (filter #(-> % deref executing?))
          ;(log-seq 'script-atoms-executing)

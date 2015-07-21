@@ -5,7 +5,7 @@
 (ns cider-ci.ex.scripts.processor.patch
   (:require
     [cider-ci.ex.scripts.exec :as exec]
-    [cider-ci.ex.trial.helper :as trial]
+    [cider-ci.ex.trials.helper :as trial]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
     [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
     [clj-time.core :as time]

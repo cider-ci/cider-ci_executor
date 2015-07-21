@@ -2,7 +2,7 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software.
 
-(ns cider-ci.ex.trial
+(ns cider-ci.ex.trials.core
   (:import
     [java.io File]
     )
@@ -13,7 +13,7 @@
     [cider-ci.ex.reporter :as reporter]
     [cider-ci.ex.result :as result]
     [cider-ci.ex.scripts.processor]
-    [cider-ci.ex.trial.helper :refer :all]
+    [cider-ci.ex.trials.helper :refer :all]
     [cider-ci.utils.daemon :as daemon]
     [cider-ci.utils.http :refer [build-server-url]]
     [cider-ci.utils.map :refer [deep-merge]]

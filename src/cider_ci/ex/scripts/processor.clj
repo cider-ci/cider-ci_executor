@@ -10,7 +10,7 @@
     [cider-ci.ex.scripts.processor.starter :refer [start-scripts]]
     [cider-ci.ex.scripts.processor.terminator :refer [set-terminate-scripts]]
     [cider-ci.ex.scripts.processor.trigger :as trigger]
-    [cider-ci.ex.trial.helper :as trial]
+    [cider-ci.ex.trials.helper :as trials]
     [cider-ci.ex.utils.state :refer [pending? executing-or-waiting? executing? finished?]]
     [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
     [clj-commons-exec :as commons-exec]
@@ -46,7 +46,7 @@
 
 
 (defn- set-skipped-state-if-not-finnished [trial]
-  (doseq [script-atom (trial/get-scripts-atoms trial)]
+  (doseq [script-atom (trials/get-scripts-atoms trial)]
     (when-not (finished? script-atom)
       (skip-script script-atom)))
   trial)
@@ -67,7 +67,7 @@
     (loop []
       (Thread/sleep 100)
       (touch trial)
-      (let [scripts-atoms (trial/get-scripts-atoms trial)]
+      (let [scripts-atoms (trials/get-scripts-atoms trial)]
         (when (and (not (every? finished? scripts-atoms))
                    (or (some executing-or-waiting? scripts-atoms)
                        ; give the triggers a chance to evaluate:

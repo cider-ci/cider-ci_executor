@@ -8,7 +8,7 @@
     [cider-ci.ex.scripts.processor.terminator :refer [set-terminate-scripts]]
     [cider-ci.ex.scripts.processor.starter :refer [start-scripts]]
     [cider-ci.ex.scripts.processor.skipper :refer [skip-scripts]]
-    [cider-ci.ex.trial.helper :as trial]
+    [cider-ci.ex.trials.helper :as trials]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
     [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
     [clj-commons-exec :as commons-exec]
@@ -35,13 +35,13 @@
 
 
 (defn add-watchers [trial]
-  (doseq [script-atom (trial/get-scripts-atoms trial)]
+  (doseq [script-atom (trials/get-scripts-atoms trial)]
     (add-watch script-atom
                :trigger
                (fn [_ script-atom old-state new-state]
                  (eval-watch-trigger trial old-state new-state)))))
 
 (defn remove-watchers [trial]
-  (doseq [script-atom (trial/get-scripts-atoms trial)]
+  (doseq [script-atom (trials/get-scripts-atoms trial)]
     (remove-watch script-atom :trigger)))
 

@@ -5,7 +5,7 @@
 (ns cider-ci.ex.scripts.processor.skipper
   (:require
     [cider-ci.ex.scripts.exec :as exec]
-    [cider-ci.ex.trial.helper :as trial :refer [get-script-by-script-key]]
+    [cider-ci.ex.trials.helper :refer [get-script-by-script-key get-scripts-atoms]]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
     [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
     [cider-ci.ex.scripts.processor.starter :refer [amend-with-start-when-defaults start-when-fulfilled?]]
@@ -47,7 +47,7 @@
            not))))
 
 (defn- unsatisfiable-scripts [trial]
-  (->> (trial/get-scripts-atoms trial)
+  (->> (get-scripts-atoms trial)
        (debug-pipe ['unsatisfiable-scripts 'script-atoms])
        (filter #(-> % deref pending?))
        (debug-pipe ['unsatisfiable-scripts 'pending-scripts-atoms])

@@ -2,7 +2,7 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software.
 
-(ns cider-ci.ex.trial.sweeper
+(ns cider-ci.ex.trials.sweeper
   (:require
     [cider-ci.ex.fs.last-access-time :refer [last-access-time]]
     [cider-ci.utils.config :as config :refer [get-config]]

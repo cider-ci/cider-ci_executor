@@ -12,8 +12,8 @@
     [cider-ci.ex.ping :as ping]
     [cider-ci.ex.reporter :as reporter]
     [cider-ci.ex.traits :as traits]
-    [cider-ci.ex.trial :as trial]
-    [cider-ci.ex.trial.sweeper]
+    [cider-ci.ex.trials.core :as trials]
+    [cider-ci.ex.trials.sweeper]
     [cider-ci.ex.web :as web]
     [cider-ci.utils.config :as config]
     [cider-ci.utils.config-loader :as config-loader]
@@ -58,7 +58,7 @@
       (web/initialize {:basic_auth (basic-auth)
                        :http (-> conf :http)})
       (ping/initialize)
-      (cider-ci.ex.trial.sweeper/initialize)
+      (cider-ci.ex.trials.sweeper/initialize)
       )))
 
 
