@@ -4,7 +4,7 @@
 
 (ns cider-ci.ex.trial
   (:import
-    [java.io File ]
+    [java.io File]
     )
   (:require
     [cider-ci.ex.attachments :as attachments]
