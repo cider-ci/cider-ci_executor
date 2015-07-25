@@ -9,5 +9,6 @@
     [clojure.string :as string]
     [clojure.tools.logging :as logging]
     [drtom.logbug.debug :as debug]
+    [cider-ci.ex.trials.core :as trials]
     ))
 

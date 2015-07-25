@@ -9,7 +9,7 @@
     )
   (:require
     [cider-ci.ex.accepted-repositories :as accepted-repositories]
-    [cider-ci.ex.ping :as ping]
+    [cider-ci.ex.sync :as sync]
     [cider-ci.ex.reporter :as reporter]
     [cider-ci.ex.traits :as traits]
     [cider-ci.ex.trials.core :as trials]
@@ -57,7 +57,7 @@
       (initialize)
       (web/initialize {:basic_auth (basic-auth)
                        :http (-> conf :http)})
-      (ping/initialize)
+      (sync/initialize)
       (cider-ci.ex.trials.sweeper/initialize)
       )))
 

@@ -72,7 +72,6 @@
   (cpj/routes
     (cpj/context context []
                  (cpj/GET "/hello" [] (say-hello))
-                 (cpj/POST "/ping" [] (ping))
                  (cpj/POST "/execute" req (execute req))
                  (cpj/GET "/trials" [] (get-trials))
                  (cpj/GET "/trials/:id" [id] (get-trial id)))))

@@ -20,6 +20,8 @@ reporter:
 
 sudo: false
 
+sync_interval: 1.0
+
 working_dir: "./tmp/working-dir"
 
 working_dir_trial_retention_time_minutes: 10
