@@ -13,6 +13,7 @@
     [cider-ci.ex.reporter :as reporter]
     [cider-ci.ex.traits :as traits]
     [cider-ci.ex.trials :as trials]
+    [cider-ci.ex.trials.state :as trials.state]
     [cider-ci.ex.trials.sweeper]
     [cider-ci.ex.web :as web]
     [cider-ci.utils.config :as config]
@@ -59,6 +60,7 @@
                        :http (-> conf :http)})
       (sync/initialize)
       (cider-ci.ex.trials.sweeper/initialize)
+      (trials.state/initialize)
       )))
 
 

@@ -63,3 +63,33 @@
     (@trials-atom id)))
 
 
+;### sweep ####################################################################
+
+(defn- trials-to-be-swept  []
+  (->> @trials-atom
+       (map second)
+       (map :params-atom)
+       (map deref)
+       (filter :finished_at)
+       (filter #(time/before? (:finished_at %)
+                              (time/minus (time/now) (time/minutes 5))))))
+
+(defn- sweep []
+  (doseq [trial (trials-to-be-swept)]
+    (swap! trials-atom
+           (fn [current trial]
+             (dissoc current (:trial_id trial)))
+           trial)))
+
+(daemon/define "sweep" start-sweep stop-sweep 60
+  (sweep))
+
+(defn initialize []
+  (start-sweep))
+
+;### Debug ####################################################################
+;(logging-config/set-logger! :level :debug)
+;(logging-config/set-logger! :level :info)
+;(debug/debug-ns 'cider-ci.auth.http-basic)
+;(debug/debug-ns *ns*)
+
