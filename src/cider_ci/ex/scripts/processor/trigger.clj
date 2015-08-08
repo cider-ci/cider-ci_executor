@@ -20,7 +20,6 @@
 
 
 (defn trigger [trial msg]
-  (logging/info "TRIGGER: " msg)
   (catcher/wrap-with-log-error (skip-unsatisfiable-scripts trial))
   (catcher/wrap-with-log-error (set-to-terminate-when-fulfilled trial))
   (catcher/wrap-with-log-error (start-scripts trial))

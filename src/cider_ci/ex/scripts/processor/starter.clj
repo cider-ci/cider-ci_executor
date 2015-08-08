@@ -17,7 +17,6 @@
 
 
 (defn start-when-fulfilled? [params script-a trial]
-  (logging/info 'start-when-fulfilled? [params script-a trial])
   (catcher/wrap-with-log-error
     (let [script-key (:script params)
           script (trials/get-script-by-script-key script-key trial)

@@ -21,7 +21,6 @@
 
 ;### Patch ####################################################################
 (defn patch-as-json [url params]
-  (logging/info "PATCHTNG to: " url)
   (let [body (json/write-str params)
         params  {:insecure? true
                  :content-type :json

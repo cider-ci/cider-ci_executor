@@ -41,7 +41,6 @@
   {:status 204})
 
 (defn execute [request]
-  (logging/info (str "received trial request: " request))
   (try
     (let [trial-parameters  (clojure.walk/keywordize-keys (:json-params request))]
       (when-not (:trial_id trial-parameters) (throw (IllegalStateException. ":trial_id parameter must be present")))

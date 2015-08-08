@@ -131,7 +131,6 @@
 
 ;#### execute #################################################################
 (defn execute [params]
-  (logging/info execute [params])
   (let [trial (create-trial params)]
     (try (accepted-repositories/assert-satisfied (:git_url params))
          (->> trial

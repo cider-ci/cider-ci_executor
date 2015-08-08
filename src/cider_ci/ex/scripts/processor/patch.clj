@@ -15,7 +15,6 @@
 
 
 (defn- eval-patch [trial old-state new-state]
-  (logging/info 'NEW-STATE new-state)
   (future
     (catcher/wrap-with-log-error
       (trial/send-patch-via-agent trial {:scripts {(:key new-state) new-state}})

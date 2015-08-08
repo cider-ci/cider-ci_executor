@@ -47,7 +47,6 @@
   (->> (trials.state/get-trials-properties)
        (map #(select-keys % [:trial_id :started_at :finished_at :state]))))
 
-
 (defn sync []
   (catcher/wrap-with-suppress-and-log-warn
     (let [config (get-config)
@@ -60,11 +59,8 @@
                 :accepted_repositories (accepted-repositories/get-accepted-repositories)
                 :available_load (- max-load (unfinished-trials-count))
                 :trials (get-trials) }]
-      (logging/info 'sync 'data data)
       (let [response (http/post url {:body (json/write-str data)})
             body (json/read-str (:body response) :key-fn keyword)]
-        (logging/info 'sync 'response  response)
-        (logging/info 'sync 'body body)
         (execute-trials (:trials-to-be-executed body))
         (terminate-aborting (->> body :trials-being-processed))
         ))))
