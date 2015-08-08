@@ -30,14 +30,9 @@
     ))
 
 
-;#### manage trials ###########################################################
+;#### keep and manage state of trials #########################################
+
 (defonce ^:private trials-atom (atom {}))
-
-(defn get-trials []
-  "Retrieves the received and not yet discarded trials"
-  (flatten (map (fn [t] [(:params-atom (second t))])
-       (seq @trials-atom))))
-
 (defn get-trial [id]
   "Returns the entity stored in the trials-atom if it exists or nil otherwise.
   The properties of the trial can be retrived (-> trial :params-atom deref)
@@ -49,6 +44,13 @@
   Use get-trial to access all attributes."
   (when-let [trial (get-trial id)]
     (-> trial :params-atom deref)))
+
+(defn get-trials-properties []
+  "Returns a sequence of the not yet discarded trials of any state.
+  Each in the same format as in get-trial proerties."
+  (->> @trials-atom
+      seq
+      (map #(-> % second :params-atom deref))))
 
 (defn create-trial
   "Creates a new trial, stores it in trials under its id and returns the trial"

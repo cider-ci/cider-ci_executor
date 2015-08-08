@@ -54,7 +54,7 @@
       {:status 422 :body (str e)})))
 
 (defn get-trials []
-  (let [trials (trials.state/get-trials)]
+  (let [trials (trials.state/get-trials-properties)]
     {:status 200
      :headers {"Content-Type" "application/json"}
      :body (json/write-str trials)}
