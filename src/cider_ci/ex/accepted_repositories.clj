@@ -27,11 +27,17 @@
     (logging/info "accepted-repositories changed to " @accepted-repositories)))
 
 
-(defn satisfied! [repository-url]
+(defn assert-satisfied [repository-url]
+  (when (clojure.string/blank? repository-url)
+    (throw (ex-info "The repository-url may not be empty."
+                    {:status 422
+                     :repository-url repository-url
+                     :accepted-repositories @accepted-repositories})))
   (or (empty? @accepted-repositories)
       (some #{repository-url} @accepted-repositories)
       (throw (ex-info "The repository-url is not included in the accepted repositories."
-                      {:repository-url repository-url
+                      {:status 403
+                       :repository-url repository-url
                        :accepted-repositories @accepted-repositories}))))
 
 (daemon/define "reload-accepted-repositories" start-read-accepted-repositories stop-read-accepted-repositories 1

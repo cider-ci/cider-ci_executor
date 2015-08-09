@@ -45,7 +45,7 @@
     (let [trial-parameters  (clojure.walk/keywordize-keys (:json-params request))]
       (when-not (:trial_id trial-parameters) (throw (IllegalStateException. ":trial_id parameter must be present")))
       (when-not (:patch_path trial-parameters) (throw (IllegalStateException. ":patch_path parameter must be present")))
-      (accepted-repositories/satisfied! (:git_url trial-parameters))
+      (accepted-repositories/assert-satisfied (:git_url trial-parameters))
       (future (trials/execute trial-parameters))
       {:status 204})
     (catch Exception e

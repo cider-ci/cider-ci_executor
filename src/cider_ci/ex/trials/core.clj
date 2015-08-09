@@ -27,6 +27,7 @@
     [drtom.logbug.debug :as debug]
     [drtom.logbug.thrown :as thrown]
     [robert.hooke :as hooke]
+[cider-ci.ex.accepted-repositories :as accepted-repositories]
     ))
 
 
@@ -156,7 +157,8 @@
 (defn execute [params]
   (logging/info execute [params])
   (let [trial (create-trial params)]
-    (try (->> trial
+    (try (accepted-repositories/assert-satisfied (:git_url params))
+         (->> trial
               create-and-insert-working-dir
               prepare-and-insert-scripts)
          (let [ports (occupy-and-insert-ports trial)]
