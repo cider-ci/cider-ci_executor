@@ -35,7 +35,7 @@
   (logging/debug msg {:seq seq})
   (doall seq))
 
-(defn set-terminate-scripts  [trial]
+(defn set-to-terminate-when-fulfilled [trial]
   (catcher/wrap-with-log-error
     (->> (trials/get-scripts-atoms trial)
          ;(log-seq 'script-atoms)
@@ -46,6 +46,20 @@
          (map (fn [script-atom]
                 (swap! script-atom  #(assoc % :terminate true ))))
          doall)))
+
+;### abort ####################################################################
+
+(defn- set-to-terminate-when-executing [trial]
+  (->> (trials/get-scripts-atoms trial)
+       (filter #(-> % deref executing?))
+       (map (fn [script-atom]
+              (swap! script-atom  #(assoc % :terminate true ))))
+       doall))
+
+
+(defn abort [trial]
+  (set-to-terminate-when-executing trial)
+  )
 
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)

@@ -7,8 +7,10 @@
   (:refer-clojure :exclude [sync])
   (:require
     [cider-ci.ex.accepted-repositories :as accepted-repositories]
+    [cider-ci.ex.scripts.processor.abort :as scripts-abort]
     [cider-ci.ex.traits :as traits]
-    [cider-ci.ex.trials.core :as trials]
+    [cider-ci.ex.trials.state :as trials.state]
+    [cider-ci.ex.trials :as trials]
     [cider-ci.utils.config :refer [get-config]]
     [cider-ci.utils.daemon :as daemon]
     [cider-ci.utils.http :as http :refer [build-service-url]]
@@ -21,20 +23,25 @@
     [drtom.logbug.debug :as debug]
     ))
 
-
 (defn- unfinished-trials-count []
-  (->> (trials/get-trials)
+  (->> (trials.state/get-trials)
        (filter #(-> % deref :state
                     #{"passed" "failed" "skipped" "aborted"}
                     boolean not))
-       count
-       ))
-
+       count))
 
 (defn- execute-trials [trials]
   (doseq [trial trials]
     (future (catcher/wrap-with-suppress-and-log-warn
               (trials/execute trial)))))
+
+(defn- terminate-aborting [trials]
+  (->> trials
+       (filter #(= "aborting" (:state %)))
+       (map #(trials.state/get-trial (:id %)))
+       (filter identity)
+       (map scripts-abort/abort)
+       doall))
 
 (defn sync []
   (catcher/wrap-with-suppress-and-log-warn
@@ -54,6 +61,7 @@
         (logging/info 'sync 'response  response)
         (logging/info 'sync 'body body)
         (execute-trials (:trials-to-be-executed body))
+        (terminate-aborting (->> body :trials-being-processed))
         ))))
 
 

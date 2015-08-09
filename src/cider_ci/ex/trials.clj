@@ -2,7 +2,7 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software.
 
-(ns cider-ci.ex.trials.core
+(ns cider-ci.ex.trials
   (:import
     [java.io File]
     )
@@ -14,6 +14,7 @@
     [cider-ci.ex.result :as result]
     [cider-ci.ex.scripts.processor]
     [cider-ci.ex.trials.helper :refer :all]
+    [cider-ci.ex.trials.state :refer [create-trial]]
     [cider-ci.utils.daemon :as daemon]
     [cider-ci.utils.http :refer [build-server-url]]
     [cider-ci.utils.map :refer [deep-merge]]
@@ -61,31 +62,6 @@
                           (into {}))]
     (swap! params-atom #(conj %1 {:scripts %2}) script-atoms))
   trial)
-
-;#### manage trials ###########################################################
-(def ^:private trials-atom (atom {}))
-
-(defn get-trials []
-  "Retrieves the received and not yet discarded trials"
-  (flatten (map (fn [t] [(:params-atom (second t))])
-       (seq @trials-atom))))
-
-(defn get-trial [id]
-  (when-let [trial (@trials-atom id)]
-    (:params-atom trial)))
-
-(defn- create-trial
-  "Creates a new trial, stores it in trials under its id and returns the trial"
-  [params]
-  (let [id (:trial_id params)
-        params (assoc params :started_at (time/now))]
-    (swap! trials-atom
-           (fn [trials params id]
-             (conj trials {id {:params-atom (atom  params)
-                               :report-agent (agent [] :error-mode :continue)}}))
-           params id)
-    (@trials-atom id)))
-
 
 
 ;#### stuff ###################################################################

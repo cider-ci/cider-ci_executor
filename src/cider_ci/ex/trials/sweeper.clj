@@ -22,6 +22,10 @@
     [org.apache.commons.io FilenameUtils]
     ))
 
+;### sweeping of the filtes resp dirs #########################################
+; based on file attributes; we could do better once the trials are removed
+; from their atom too
+
 
 (defn- get-working-dir []
   (-> (get-config) :working_dir clj-fs/absolute clj-fs/normalized))

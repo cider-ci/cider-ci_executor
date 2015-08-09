@@ -8,7 +8,8 @@
     [cider-ci.ex.accepted-repositories :as accepted-repositories]
     [cider-ci.auth.http-basic :as http-basic]
     [cider-ci.ex.certificate :as certificate]
-    [cider-ci.ex.trials.core :as trials]
+    [cider-ci.ex.trials  :as trials]
+    [cider-ci.ex.trials.state :as trials.state]
     [cider-ci.utils.http :as http]
     [cider-ci.utils.routing :as routing]
     [clj-logging-config.log4j :as logging-config]
@@ -53,14 +54,14 @@
       {:status 422 :body (str e)})))
 
 (defn get-trials []
-  (let [trials (trials/get-trials)]
+  (let [trials (trials.state/get-trials)]
     {:status 200
      :headers {"Content-Type" "application/json"}
      :body (json/write-str trials)}
     ))
 
 (defn get-trial [id]
-  (if-let [trial (trials/get-trial id)]
+  (if-let [trial (trials.state/get-trial-properties id)]
     {:status 200
      :headers {"Content-Type" "application/json"}
      :body (json/write-str trial)}

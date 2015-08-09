@@ -55,19 +55,19 @@
        (debug-pipe ['unsatisfiable-scripts 'result])
        doall))
 
-(defn- skip-script [script-atom]
+(defn skip-script [script-atom by-reason]
   (swap! script-atom
          (fn [script]
            (if (= "pending" (:state script))
              (assoc script
                     :state "skipped"
                     :skipped_at (time/now)
-                    :skipped_by "unsatisfiable check")
+                    :skipped_by by-reason)
              script))))
 
-(defn  skip-scripts [trial]
+(defn skip-unsatisfiable-scripts [trial]
   (->> (unsatisfiable-scripts trial)
-       (map skip-script)
+       (map #(skip-script % "unsatisfiable check"))
        doall)
   trial)
 

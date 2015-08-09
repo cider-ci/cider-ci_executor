@@ -5,9 +5,9 @@
 (ns cider-ci.ex.scripts.processor.trigger
   (:require
     [cider-ci.ex.scripts.exec :as exec]
-    [cider-ci.ex.scripts.processor.terminator :refer [set-terminate-scripts]]
+    [cider-ci.ex.scripts.processor.terminator :refer [set-to-terminate-when-fulfilled]]
     [cider-ci.ex.scripts.processor.starter :refer [start-scripts]]
-    [cider-ci.ex.scripts.processor.skipper :refer [skip-scripts]]
+    [cider-ci.ex.scripts.processor.skipper :refer [skip-unsatisfiable-scripts]]
     [cider-ci.ex.trials.helper :as trials]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
     [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
@@ -21,8 +21,8 @@
 
 (defn trigger [trial msg]
   (logging/info "TRIGGER: " msg)
-  (catcher/wrap-with-log-error (skip-scripts trial))
-  (catcher/wrap-with-log-error (set-terminate-scripts trial))
+  (catcher/wrap-with-log-error (skip-unsatisfiable-scripts trial))
+  (catcher/wrap-with-log-error (set-to-terminate-when-fulfilled trial))
   (catcher/wrap-with-log-error (start-scripts trial))
   trial)
 

@@ -6,9 +6,8 @@
   (:require
     [cider-ci.ex.scripts.exec :as exec]
     [cider-ci.ex.scripts.processor.patch :as patch]
-    [cider-ci.ex.scripts.processor.skipper :refer [skip-scripts]]
+    [cider-ci.ex.scripts.processor.skipper :refer [skip-script]]
     [cider-ci.ex.scripts.processor.starter :refer [start-scripts]]
-    [cider-ci.ex.scripts.processor.terminator :refer [set-terminate-scripts]]
     [cider-ci.ex.scripts.processor.trigger :as trigger]
     [cider-ci.ex.trials.helper :as trials]
     [cider-ci.ex.utils.state :refer [pending? executing-or-waiting? executing? finished?]]
@@ -34,21 +33,10 @@
 
 ;###############################################################################
 
-(defn- skip-script [script-atom]
-  (swap! script-atom
-         (fn [script]
-           (if (= "pending" (:state script))
-             (assoc script
-                    :state "skipped"
-                    :skipped_at (time/now)
-                    :skipped_by "leftover check")
-             script))))
-
-
 (defn- set-skipped-state-if-not-finnished [trial]
   (doseq [script-atom (trials/get-scripts-atoms trial)]
     (when-not (finished? script-atom)
-      (skip-script script-atom)))
+      (skip-script script-atom "leftover check")))
   trial)
 
 (defn- finished-less-then-x-ago? [item x]
