@@ -4,7 +4,8 @@
 
 (ns cider-ci.ex.accepted-repositories
   (:require
-    [cider-ci.ex.utils :refer [read-tags-from-files]]
+    [cider-ci.ex.utils.tags :refer :all]
+    [cider-ci.utils.fs :refer :all]
     [cider-ci.utils.config-loader :as config-loader]
     [cider-ci.utils.daemon :as daemon]
     [cider-ci.utils.map :refer [deep-merge]]
@@ -40,11 +41,15 @@
                        :repository-url repository-url
                        :accepted-repositories @accepted-repositories}))))
 
-(daemon/define "reload-accepted-repositories" start-read-accepted-repositories stop-read-accepted-repositories 1
-  (-> (read-tags-from-files ["/etc/cider-ci/accepted-repositories.txt"
-                             "./config/accepted-repositories_default.txt"
-                             "./config/accepted-repositories.txt"])
-      set-accepted-repositories))
+(daemon/define "reload-accepted-repositories"
+  start-read-accepted-repositories
+  stop-read-accepted-repositories 1
+  (->> [(system-path-abs "etc" "cider-ci" "accepted-repositories.txt")
+        (system-path "config" "accepted-repositories_default.txt")
+        (system-path "config" "accepted-repositories.txt")]
+       (filter identity)
+       (read-tags-from-files)
+       set-accepted-repositories))
 
 (defn initialize []
   (stop-read-accepted-repositories)

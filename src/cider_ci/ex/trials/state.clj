@@ -32,7 +32,9 @@
 
 ;#### keep and manage state of trials #########################################
 
-(defonce ^:private trials-atom (atom {}))
+(defonce ^:private trials-atom
+  (atom {}))
+
 (defn get-trial [id]
   "Returns the entity stored in the trials-atom if it exists or nil otherwise.
   The properties of the trial can be retrived (-> trial :params-atom deref)

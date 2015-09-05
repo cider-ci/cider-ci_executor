@@ -15,7 +15,6 @@
     [me.raynes.fs :as fs]
     ))
 
-
 (defn filter-sha1-chars [s]
   (-> s
       (string/split #"")
@@ -32,7 +31,6 @@
     (string/split #"\s+")
     first
     filter-sha1-chars))
-
 
 (defn gitmodules-conf [dir]
   (let [path (str dir "/.gitmodules")]

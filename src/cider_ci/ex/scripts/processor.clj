@@ -19,18 +19,6 @@
     [drtom.logbug.debug :as debug]
     ))
 
-
-
-
-;###############################################################################
-
-(defn- touch [trial]
-  ; touch a file in the working dir every minute during execution so the
-  ; working dir will not be removed prematurely by the sweeper
-  (when (= 0  (-> (System/currentTimeMillis) (/ 1000) double int (mod 60)))
-    (commons-exec/sh ["touch" "._cider-ci.executing"]
-                     {:dir (-> trial :params-atom deref :working_dir)})))
-
 ;###############################################################################
 
 (defn- set-skipped-state-if-not-finnished [trial]
@@ -44,7 +32,6 @@
              (time/before? (time/minus (time/now) x)
                            finished-at))))
 
-
 ;###############################################################################
 
 (defn process [trial]
@@ -54,7 +41,6 @@
     (trigger/trigger trial "initial")
     (loop []
       (Thread/sleep 100)
-      (touch trial)
       (let [scripts-atoms (trials/get-scripts-atoms trial)]
         (when (and (not (every? finished? scripts-atoms))
                    (or (some executing-or-waiting? scripts-atoms)

@@ -18,14 +18,9 @@ reporter:
   max_retries: 1
   retry_ms_factor: 1000
 
-sudo: false
+exec_user: NULL
 
 sync_interval: 1.0
 
-working_dir: "./tmp/working-dir"
+tmp_dir: 'tmp'
 
-working_dir_trial_retention_time_minutes: 10
-
-git_repos_dir: "./tmp/repository-dir"
-
-exec: {}

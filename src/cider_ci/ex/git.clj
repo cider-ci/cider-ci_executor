@@ -21,8 +21,10 @@
     [clojure.string :as string :refer [blank?]]
     [clojure.tools.logging :as logging]
     [me.raynes.fs :as fs]
+    )
+  (:import
+    [org.apache.commons.lang3 SystemUtils]
     ))
-
 
 ;### Core Git #################################################################
 
@@ -42,8 +44,12 @@
       (repository/serialized-clone-to-dir repository-url commit-id working-dir)
       (when (-> params :git-options :submodules :clone)
         (submodules/update working-dir))
-      (when-let [user (:user (:sudo (get-config)))]
-        (system/exec-with-success-or-throw ["chown" "-R" user working-dir]))
+      (when-let [user (-> (get-config) :exec_user)]
+        (cond
+          SystemUtils/IS_OS_UNIX (system/exec-with-success-or-throw
+                                   ["chown" "-R" user working-dir])
+          SystemUtils/IS_OS_WINDOWS (system/exec-with-success-or-throw
+                                      ["icacls" working-dir "/grant" (str user ":(OI)(CI)F")])))
       working-dir)))
 
 ;### Debug #####################################################################

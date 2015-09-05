@@ -18,6 +18,7 @@
     [clojure.tools.logging :as logging]
     [drtom.logbug.debug :as debug]
     [drtom.logbug.thrown :as thrown]
+    [me.raynes.fs :as clj-fs]
     ))
 
 ; TODO us clj-fs or our fs ..
@@ -36,14 +37,14 @@
        (map (fn [[k v]] [(string/upper-case k) v])) ; TODO,  remove this with Cider-CI version 3.0.0
        (into {})))
 
-
 (defn- prepare-script-file [params]
   (let [script (:body params)
-        script-file (File/createTempFile "cider-ci_" ".script")]
-    (.deleteOnExit script-file)
-    (spit script-file script)
-    (.setExecutable script-file true false)
-    script-file))
+        script-file (clj-fs/file (str (:private_dir params) File/separator
+                                      (ci-fs/path-proof (:name params))
+                                      "_script"))]
+    (doto script-file clj-fs/create .deleteOnExit (spit script)
+      (.setExecutable true false))
+    (.getAbsolutePath script-file)))
 
 (defn- get-current-user-name []
   (System/getProperty "user.name"))
@@ -57,20 +58,24 @@
        (map (fn [[k v]]
               (str k "=" v )))))
 
+; TODO:
+; https://technet.microsoft.com/en-us/library/cc771525.aspx
 (defn- interpreter [env_vars]
   (flatten ["sudo" "-u" (get-exec-user) env_vars  "-n" "-i"]))
-
 
 ;##############################################################################
 
 (defn- create-command-wrapper-file [params]
   (let [working-dir (working-dir params)
-        wrapper-file (doto (File/createTempFile "cider-ci_", ".command_wrapper")
+        wrapper-file (doto (clj-fs/file (str (:private_dir params) File/separator
+                                             (ci-fs/path-proof (:name params))
+                                             "_wrapper"))
+                       clj-fs/create
                        .deleteOnExit
-                       (.setExecutable true false)
-                       (spit  (str (preper-terminate-script-prefix params)
-                                   "cd '" working-dir "' "
-                                   "&& " (.getAbsolutePath (:script-file params)))))]
+                       (spit (str (preper-terminate-script-prefix params)
+                                  "cd '" working-dir "' "
+                                  "&& " (:script-file params)))
+                       (.setExecutable true false))]
     (logging/debug {:WRAPPER-FILE (.getAbsolutePath wrapper-file)})
     (.getAbsolutePath wrapper-file)))
 
@@ -113,6 +118,7 @@
            e-str )))
 
 (def ^:private debug-recent-execs (atom '()))
+
 (defn- debug-recent-execs-push [exec]
   (swap! debug-recent-execs (fn [re e] (conj (take 5 re ) e)) exec))
 

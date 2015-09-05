@@ -9,6 +9,7 @@
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
     [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
     [clj-commons-exec :as commons-exec]
+    [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clojure.tools.logging :as logging]
     [drtom.logbug.catcher :as catcher]
@@ -16,6 +17,13 @@
     ))
 
 
+;### set terminate flag #######################################################
+
+(defn set-terminate-flag [script-atom]
+  (logging/debug 'set-terminate-flag {:script-atom script-atom})
+  (swap! script-atom  #(assoc % :terminate true )))
+
+;### terminate when conditions fullfiled ######################################
 
 (defn- terminate-when-fulfilled? [params script-atom trial]
   (catcher/wrap-with-log-error
@@ -43,26 +51,21 @@
          ;(log-seq 'script-atoms-executing)
          (filter #(terminate-when-all-fulfilled? % trial))
          ;(log-seq 'script-atoms-fulfilled)
-         (map (fn [script-atom]
-                (swap! script-atom  #(assoc % :terminate true ))))
+         (map set-terminate-flag)
          doall)))
+
 
 ;### abort ####################################################################
 
 (defn- set-to-terminate-when-executing [trial]
   (->> (trials/get-scripts-atoms trial)
        (filter #(-> % deref executing?))
-       (map (fn [script-atom]
-              (swap! script-atom  #(assoc % :terminate true ))))
+       (map set-terminate-flag)
        doall))
 
-
-(defn abort [trial]
-  (set-to-terminate-when-executing trial)
-  )
+(defn abort [trial] (set-to-terminate-when-executing trial))
 
 ;### Debug ####################################################################
-;(logging-config/set-logger! :level :debug)
+(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
 ;(debug/debug-ns *ns*)
-

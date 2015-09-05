@@ -2,11 +2,11 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software.
 
-(ns cider-ci.ex.trials.sweeper
+(ns cider-ci.ex.trials.working-dir-sweeper
   (:require
-    [cider-ci.ex.fs.last-access-time :refer [last-access-time]]
+    [cider-ci.ex.trials.state]
     [cider-ci.utils.config :as config :refer [get-config]]
-    [cider-ci.utils.daemon :as daemon]
+    [cider-ci.utils.daemon :as daemon :refer [defdaemon]]
     [drtom.logbug.debug :as debug]
     [drtom.logbug.catcher :as catcher]
     [clj-logging-config.log4j :as logging-config]
@@ -22,11 +22,6 @@
     [org.apache.commons.io FilenameUtils]
     ))
 
-;### sweeping of the filtes resp dirs #########################################
-; based on file attributes; we could do better once the trials are removed
-; from their atom too
-
-
 (defn- get-working-dir []
   (-> (get-config) :working_dir clj-fs/absolute clj-fs/normalized))
 
@@ -34,35 +29,19 @@
   (->> (clj-fs/list-dir (get-working-dir))
        (filter clj-fs/directory?)))
 
-(defn- get-trial-dir-retention-period []
-  (time/minutes (or (-> (get-config) :working_dir_trial_retention_time_minutes)
-                    30)))
-
-(defn- to-be-deleted? [dir]
-  (time/before?
-    (last-access-time dir)
-    (time/minus (time/now)
-                (get-trial-dir-retention-period))))
-
-(defn- trial-dirs-to-be-deleted []
-  (->> (clj-fs/list-dir (get-working-dir))
-       (filter clj-fs/directory?)
-       (filter to-be-deleted?)))
-
 (defn- delete [dir]
   (catcher/wrap-with-suppress-and-log-warn
     (clj-fs/delete-dir dir)))
 
-(defn- delete-out-of-date-trial-dirs []
-  (doseq [dir (trial-dirs-to-be-deleted)]
-    (delete dir)))
+(defn- delete-orphans []
+  (doseq [working-dir (get-trial-dirs)]
+    (when-let [base-name (clj-fs/base-name working-dir)]
+      (when-not (cider-ci.ex.trials.state/get-trial base-name)
+        (logging/info "deleting working-dir " working-dir)
+        (delete working-dir)))))
 
-
-(daemon/define "trial-working-dir-sweeper"
-  start-trial-working-dir-sweeper
-  stop-trial-working-dir-sweeper
-  60
-  (delete-out-of-date-trial-dirs))
+(defdaemon "trial-working-dir-sweeper"
+  1 (delete-orphans))
 
 (defn initialize []
   (start-trial-working-dir-sweeper))

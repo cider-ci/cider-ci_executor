@@ -7,6 +7,7 @@
     [java.io File]
     )
   (:require
+    [cider-ci.ex.accepted-repositories :as accepted-repositories]
     [cider-ci.ex.attachments :as attachments]
     [cider-ci.ex.git :as git]
     [cider-ci.ex.port-provider :as port-provider]
@@ -27,8 +28,8 @@
     [drtom.logbug.catcher :as catcher]
     [drtom.logbug.debug :as debug]
     [drtom.logbug.thrown :as thrown]
+    [me.raynes.fs :as clj-fs]
     [robert.hooke :as hooke]
-[cider-ci.ex.accepted-repositories :as accepted-repositories]
     ))
 
 
@@ -44,9 +45,8 @@
   (atom (conj {}
               (deep-merge (select-keys trial-params
                                        [:environment-variables
-                                        :job_id
-                                        :trial_id
-                                        :working_dir])
+                                        :job_id :trial_id
+                                        :working_dir :private_dir])
                           script-params)
               (when-not (:name script-params)
                 {:name (name k)})
@@ -71,10 +71,13 @@
   adds the :working_dir key to the params-atom and sets the corresponding
   value. Returns the (modified) trial)"
   (let [params-atom (get-params-atom trial)
-        working-dir (git/prepare-and-create-working-dir @params-atom)]
+        working-dir (git/prepare-and-create-working-dir @params-atom)
+        private-dir (str working-dir File/separator ".cider-ci_private")]
+    (clj-fs/mkdir private-dir)
     (swap! params-atom
-           #(assoc %1 :working_dir %2)
-           working-dir))
+           #(assoc %1 :working_dir %2 :private_dir %3)
+           working-dir
+           private-dir))
   trial)
 
 (defn- occupy-and-insert-ports [trial]

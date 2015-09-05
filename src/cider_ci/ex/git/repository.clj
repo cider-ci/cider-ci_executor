@@ -26,7 +26,7 @@
 ;### Repo path ################################################################
 
 (defn- canonical-repository-path [repository-url]
-  (let [absolute-repos-path (fs/absolute (:git_repos_dir (get-config)))
+  (let [absolute-repos-path (-> (get-config) :repositories_dir fs/absolute)
         path (str absolute-repos-path  (File/separator)
                   (ci-fs/path-proof repository-url))]
     (assert (> (count path) (count (str absolute-repos-path))))

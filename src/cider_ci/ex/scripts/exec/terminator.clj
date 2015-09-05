@@ -4,8 +4,9 @@
 
 (ns cider-ci.ex.scripts.exec.terminator
   (:import
-    [org.apache.commons.exec ExecuteWatchdog]
     [java.io File]
+    [org.apache.commons.exec ExecuteWatchdog]
+    [org.apache.commons.lang3 SystemUtils]
     )
   (:require
     [cider-ci.utils.config :as config :refer [get-config]]
@@ -19,7 +20,6 @@
     [drtom.logbug.debug :as debug]
     [drtom.logbug.thrown :as thrown]
     ))
-
 
 ;### termination ##############################################################
 ; It seems not possible to guarantee that all subprocesses are killed.  The
@@ -76,11 +76,10 @@
       result-pids
       (add-descendant-pids result-pids))))
 
-
 (defn- pid-file-path [params]
-  (let [working-dir  (-> params :working_dir)
+  (let [private-dir (-> params :private_dir)
         script-name (-> params :name)]
-    (str working-dir (File/separator) "._cider-ci_" (ci-fs/path-proof script-name) ".pid")))
+    (str private-dir (File/separator) (ci-fs/path-proof script-name) ".pid")))
 
 (defn- terminate-via-process-tree [exec-future script-atom]
   (let [working-dir  (-> script-atom deref :working_dir)
@@ -101,6 +100,7 @@
     ))
 
 (defn preper-terminate-script-prefix [params]
-  (case (System/getProperty "os.name")
-    ("Linux" "Mac OS X") (str "echo $$ > '"(pid-file-path params)"' && ")
-    ""))
+  (cond
+    SystemUtils/IS_OS_UNIX (str "echo $$ > '"(pid-file-path params)"' && ")
+    :else ""))
+

@@ -5,9 +5,10 @@
 
 (ns cider-ci.ex.traits
   (:require
-    [cider-ci.ex.utils :refer [read-tags-from-files]]
+    [cider-ci.ex.utils.tags :refer :all]
     [cider-ci.utils.config-loader :as config-loader]
     [cider-ci.utils.daemon :as daemon]
+    [cider-ci.utils.fs :refer :all]
     [cider-ci.utils.map :refer [deep-merge]]
     [clj-yaml.core :as yaml]
     [clojure.java.io :as io]
@@ -28,11 +29,14 @@
     (logging/info "traits changed to " @traits)))
 
 
-(daemon/define "reload-traits" start-read-traits stop-read-traits 1
-  (-> (read-tags-from-files ["/etc/cider-ci/traits.txt"
-                             "./config/traits_default.txt"
-                             "./config/traits.txt"])
-      set-traits))
+(daemon/define "reload-traits"
+  start-read-traits stop-read-traits 1
+  (->> [(system-path-abs "etc" "cider-ci" "traits.txt")
+        (system-path "config" "traits_default.txt")
+        (system-path "config" "traits.txt")]
+       (filter identity)
+       (read-tags-from-files)
+       set-traits))
 
 (defn initialize []
   (stop-read-traits)
