@@ -21,6 +21,10 @@
     [drtom.logbug.thrown :as thrown]
     ))
 
+
+; TODO
+; http://stackoverflow.com/questions/5614164/terminate-a-process-of-a-process-tree-in-command-line-windows
+
 ;### termination ##############################################################
 ; It seems not possible to guarantee that all subprocesses are killed.  The
 ; default strategy is to rely on "Apache Commons Exec"  which sometimes works
@@ -61,6 +65,7 @@
          (set []))))
 
 (defn- get-child-pids [pids]
+  ; TODO use IS_OS_....
   (case (System/getProperty "os.name")
     "Linux" (get-child-pids-linux pids)
     "Mac OS X" (get-child-pids-mac-os pids)
@@ -76,31 +81,47 @@
       result-pids
       (add-descendant-pids result-pids))))
 
-(defn- pid-file-path [params]
+(defn pid-file-path [params]
   (let [private-dir (-> params :private_dir)
         script-name (-> params :name)]
     (str private-dir (File/separator) (ci-fs/path-proof script-name) ".pid")))
 
+(defn- get-initial-pids-or-nil [params]
+  (->> (pid-file-path params)
+       slurp
+       (#(clojure.string/split % #"\s+|,|;"))
+       (map  clojure.string/trim)
+       (filter (complement clojure.string/blank?))
+       seq doall))
+
+(defn- kill-pid [pid]
+  (let [cmd ["kill" "-KILL" pid]
+        res (deref (commons-exec/sh cmd))]
+    (logging/debug 'killed {:cmd cmd :res res})
+    res))
+
+(defn- kill-all-pids [pids]
+  (->> pids
+       (map #(future (kill-pid %)))
+       (map deref)))
+
 (defn- terminate-via-process-tree [exec-future script-atom]
-  (let [working-dir  (-> script-atom deref :working_dir)
-        pid (-> (pid-file-path @script-atom) slurp clojure.string/trim)
-        pids (add-descendant-pids #{pid})
-        descendant-pids (difference pids #{pid})]
-    (commons-exec/sh
-      (concat ["kill" "-KILL"]
-              (into [] descendant-pids)))))
+  (if-let [initial-pids (get-initial-pids-or-nil @script-atom)]
+    (let [pids (add-descendant-pids (set initial-pids))]
+      (kill-all-pids pids))
+    (logging/warn "no pids present for " script-atom)))
 
 (defn- terminate-via-commons-exec-watchdog [exec-future script-atom]
   (.destroyProcess (:watchdog @script-atom)))
 
 (defn terminate [exec-future script-atom]
-  (case (System/getProperty "os.name")
-    ("Linux" "Mac OS X")(terminate-via-process-tree exec-future script-atom)
-    (terminate-via-commons-exec-watchdog exec-future script-atom)
-    ))
-
-(defn preper-terminate-script-prefix [params]
   (cond
-    SystemUtils/IS_OS_UNIX (str "echo $$ > '"(pid-file-path params)"' && ")
-    :else ""))
+    SystemUtils/IS_OS_UNIX (terminate-via-process-tree exec-future script-atom)
+    :else (logging/warn "Only the parent process is killed on this system."))
+  (terminate-via-commons-exec-watchdog exec-future script-atom))
 
+;### Debug ####################################################################
+;(logging-config/set-logger! :level :debug)
+;(logging-config/set-logger! :level :info)
+;(remove-ns (symbol (str *ns*)))
+(debug/debug-ns *ns*)

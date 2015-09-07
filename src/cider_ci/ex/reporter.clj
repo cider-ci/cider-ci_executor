@@ -12,14 +12,13 @@
     [clojure.tools.logging :as logging]
     ))
 
-
 (defonce conf (atom {:max_retries 10
                      :retry_ms_factor 3000
                      }))
 
 
-
 ;### Patch ####################################################################
+
 (defn patch-as-json [url params]
   (let [body (json/write-str params)
         params  {:insecure? true
@@ -49,6 +48,7 @@
 
 
 ;### Initialize ###############################################################
+
 (defn initialize [new-conf]
   (reset! conf (deep-merge @conf
                            new-conf)))

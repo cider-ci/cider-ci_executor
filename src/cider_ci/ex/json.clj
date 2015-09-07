@@ -6,7 +6,10 @@
   (:require
     [clojure.data.json]
     [clj-time.core :as time]
-    [clj-time.format :as time-format]))
+    [clj-time.format :as time-format])
+  (:import
+    [org.apache.commons.lang3 SystemUtils]
+    ))
 
 (clojure.core/extend-type clojure.lang.Agent clojure.data.json/JSONWriter
   (-write [object out]
@@ -25,11 +28,6 @@
   (-write [future-task out]
     (clojure.data.json/-write {:done (. future-task isDone)}
                               out)))
-
-(clojure.core/extend-type sun.nio.fs.UnixPath clojure.data.json/JSONWriter
-  (-write [path out]
-    (clojure.data.json/-write (.toString path)  out)))
-
 
 (clojure.core/extend-type org.apache.commons.exec.ExecuteWatchdog clojure.data.json/JSONWriter
   (-write [watchdog out]

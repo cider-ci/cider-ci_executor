@@ -3,11 +3,13 @@
 ; See the "LICENSE.txt" file provided with this software.
 (ns cider-ci.ex.scripts.exec
   (:import
-    [org.apache.commons.exec ExecuteWatchdog]
     [java.io File]
+    [org.apache.commons.exec ExecuteWatchdog]
+    [org.apache.commons.lang3 SystemUtils]
     )
   (:require
-    [cider-ci.ex.scripts.exec.terminator :refer [terminate create-watchdog preper-terminate-script-prefix]]
+    [cider-ci.ex.scripts.script :as script]
+    [cider-ci.ex.scripts.exec.terminator :refer [terminate create-watchdog pid-file-path]]
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.fs :as ci-fs]
     [clj-commons-exec :as commons-exec]
@@ -21,67 +23,99 @@
     [me.raynes.fs :as clj-fs]
     ))
 
-; TODO us clj-fs or our fs ..
+;##############################################################################
+
+(defn- script-extension [params]
+  (cond
+    (:extension params) (:extension params)
+    SystemUtils/IS_OS_WINDOWS ".bat"
+    :else ""))
+
 (defn- working-dir [params]
   (.getAbsolutePath (File. (:working_dir params))))
 
-; TODO:
-; * remove (or ... ) not needed with conj
 (defn- prepare-env-variables [params]
-  (->> (conj { }
-             {:CIDER_CI_WORKING_DIR (working-dir params)}
-             (or (:ports params) {})
-             (or (:environment-variables params) {}))
+  (->> (merge { }
+              {:CIDER_CI_WORKING_DIR (working-dir params)}
+              (:ports params)
+              (:environment-variables params))
        (filter (fn [[k v]] (not= nil v)))
        (map (fn [[k v]] [(name k) (str v)]))
-       (map (fn [[k v]] [(string/upper-case k) v])) ; TODO,  remove this with Cider-CI version 3.0.0
+       (map (fn [[k v]] [(string/upper-case k) v]))
        (into {})))
 
-(defn- prepare-script-file [params]
+
+;### script & wrapper file ####################################################
+
+(def wrapper-extension
+  (cond SystemUtils/IS_OS_WINDOWS ".ps1"
+        SystemUtils/IS_OS_UNIX ""))
+
+(defn- script-file-path [params]
+  (str (:private_dir params) File/separator
+       (ci-fs/path-proof (:name params))
+       "_script" (script-extension params)))
+
+(defn- create-script-file [params]
   (let [script (:body params)
-        script-file (clj-fs/file (str (:private_dir params) File/separator
-                                      (ci-fs/path-proof (:name params))
-                                      "_script"))]
+        script-file (clj-fs/file (script-file-path params))]
     (doto script-file clj-fs/create .deleteOnExit (spit script)
       (.setExecutable true false))
     (.getAbsolutePath script-file)))
 
+
+;### user and sudo ############################################################
+
 (defn- get-current-user-name []
   (System/getProperty "user.name"))
 
-(defn- get-exec-user []
-  (or (-> (get-config) :sudo :user)
+(defn- exec-user-name []
+  (or (-> (get-config) :exec-user :name)
       (get-current-user-name)))
 
-(defn- sudo-env [vars]
+(defn- sudo-env-vars [vars]
   (->> vars
        (map (fn [[k v]]
-              (str k "=" v )))))
+              (str k "=" v )))
+       ))
 
-; TODO:
-; https://technet.microsoft.com/en-us/library/cc771525.aspx
-(defn- interpreter [env_vars]
-  (flatten ["sudo" "-u" (get-exec-user) env_vars  "-n" "-i"]))
+;### wrapper ##################################################################
 
-;##############################################################################
+(defn- wrapper-body [params]
+  (cond
+    SystemUtils/IS_OS_UNIX (script/render "wrapper.sh"
+                                          {:pid-file-path (pid-file-path params)
+                                           :script-file-path (script-file-path params)
+                                           :working-dir-path (working-dir params)
+                                           })
+    SystemUtils/IS_OS_WINDOWS (script/render "wrapper.ps1"
+                                             {:script-file-path (script-file-path params)
+                                              :working-dir-path (working-dir params)})))
 
-(defn- create-command-wrapper-file [params]
+(defn- wrapper-file-path [params]
+  (str (:private_dir params) File/separator
+       (ci-fs/path-proof (:name params))
+       "_wrapper" wrapper-extension ))
+
+(defn- create-wrapper-file [params]
   (let [working-dir (working-dir params)
-        wrapper-file (doto (clj-fs/file (str (:private_dir params) File/separator
-                                             (ci-fs/path-proof (:name params))
-                                             "_wrapper"))
+        wrapper-file (doto (clj-fs/file (wrapper-file-path params))
                        clj-fs/create
                        .deleteOnExit
-                       (spit (str (preper-terminate-script-prefix params)
-                                  "cd '" working-dir "' "
-                                  "&& " (:script-file params)))
+                       (spit (wrapper-body params))
                        (.setExecutable true false))]
     (logging/debug {:WRAPPER-FILE (.getAbsolutePath wrapper-file)})
     (.getAbsolutePath wrapper-file)))
 
+
+;##############################################################################
+
 (defn- command [params]
-  (flatten (concat (interpreter (sudo-env (:environment-variables params)))
-                   [(create-command-wrapper-file params)])))
+  (cond
+    SystemUtils/IS_OS_UNIX (concat ["sudo" "-u" (exec-user-name)]
+                                   (-> params prepare-env-variables sudo-env-vars)
+                                   ["-n" "-i" (:wrapper-file params)])
+    SystemUtils/IS_OS_WINDOWS ["PowerShell.exe" "-ExecutionPolicy" "ByPass" "-File" (:wrapper-file params)]))
 
 (defn- commons-exec-sh [command env-variables watchdog]
   (commons-exec/sh
@@ -135,7 +169,8 @@
                          :state "executing"
                          :watchdog watchdog
                          :environment-variables (prepare-env-variables params)
-                         :script-file (prepare-script-file params)
+                         :script-file (create-script-file params)
+                         :wrapper-file (create-wrapper-file params)
                          }))
                 watchdog started-at)
          (let [exec-future (exec-sh @script-atom)]
@@ -163,4 +198,4 @@
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
 ;(remove-ns (symbol (str *ns*)))
-;(debug/debug-ns *ns*)
+(debug/debug-ns *ns*)

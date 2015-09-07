@@ -18,6 +18,7 @@
                  [org.clojars.hozumi/clj-commons-exec "1.2.0"]
                  [org.clojure/algo.generic "0.1.2"]
                  [org.clojure/tools.nrepl "0.2.10"]
+                 [selmer "0.9.1"]
                  ]
   :source-paths ["src"]
   :profiles {:dev

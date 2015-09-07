@@ -24,3 +24,15 @@ sync_interval: 1.0
 
 tmp_dir: 'tmp'
 
+# server_base_url: http://192.168.0.1:8882
+
+services:
+
+  dispatcher:
+
+    http:
+      context: '/cider-ci'
+      sub_context: '/dispatcher'
+      ssl: false
+
+
