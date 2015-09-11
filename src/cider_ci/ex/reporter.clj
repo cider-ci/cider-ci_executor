@@ -10,6 +10,7 @@
     [clojure.data.json :as json]
     [clojure.string :as string]
     [clojure.tools.logging :as logging]
+    [clojure.walk]
     ))
 
 (defonce conf (atom {:max_retries 10
@@ -55,6 +56,10 @@
 
 
 ;### Debug ####################################################################
-;(debug/debug-ns *ns*)
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
+;
+;(logging-config/set-logger! :level :debug)
+;(debug/wrap-with-log-debug #'patch-as-json)
+;
+;(debug/debug-ns *ns*)

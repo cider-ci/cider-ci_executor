@@ -1,7 +1,18 @@
-$process = Start-Process cmd `
-  -Wait -NoNewWindow -PassThru `
-  -ArgumentList "/c {{script-file-path}}" `
-  -WorkingDirectory "{{working-dir-path}}"
-Write-Output $process.StandardOutput
-# Write-Error $process.StandardError
-Exit $process.ExitCode
+$pinfo = New-Object System.Diagnostics.ProcessStartInfo
+$pinfo.FileName = "cmd"
+$pinfo.RedirectStandardError = $true
+$pinfo.RedirectStandardOutput = $true
+$pinfo.UseShellExecute = $false
+$pinfo.Arguments = "/c {{script-file-path}}"
+$pinfo.WorkingDirectory = "{{working-dir-path}}"
+
+$p = New-Object System.Diagnostics.Process
+$p.StartInfo = $pinfo
+$p.Start() | Out-Null
+$p.WaitForExit()
+$stdout = $p.StandardOutput.ReadToEnd()
+$stderr = $p.StandardError.ReadToEnd()
+Write-Output $stdout
+Write-Error $stderr
+Write-Host "exit code: " + $p.ExitCode
+Exit $p.ExitCode

@@ -57,11 +57,8 @@
       (catcher/wrap-with-suppress-and-log-warn
         (set-skipped-state-if-not-finnished trial))
       (catcher/wrap-with-suppress-and-log-warn
-        (future (Thread/sleep (* 60 1000) (patch/remove-watchers trial)))))))
-
-(defn abort [trial-id]
-  ; TODO
-  )
+        (future (Thread/sleep (* 60 1000))
+                (patch/remove-watchers trial))))))
 
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)

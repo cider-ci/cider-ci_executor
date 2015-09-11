@@ -42,7 +42,6 @@
          (filter #(= script-key (:key %)))
          first)))
 
-
 (defn scripts-done? [trial]
   (catcher/wrap-with-log-error (->> trial
                        get-scripts-atoms
@@ -50,19 +49,26 @@
                        (map :state)
                        (every? terminal-states))))
 
-
 (defn send-patch-via-agent [trial params]
   (let [report-agent (:report-agent trial)
         url (build-server-url (-> (get-params-atom trial) deref :patch_path))
         fun (fn [agent-state]
-              (catcher/wrap-with-log-error
-                (let [res (reporter/patch-as-json-with-retries url params)]
-                  (conj agent-state params))))]
-    (logging/debug "sending report off" {:url url})
+              (try
+                (catcher/wrap-with-log-error
+                  (let [res (reporter/patch-as-json-with-retries url params)]
+                    (conj agent-state res)))
+                (catch Throwable e
+                  (conj agent-state {:exception e}))))]
+    (logging/debug "sending-report-off" {:url url :params params})
     (send-off report-agent fun)))
-
 
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
 ;(debug/debug-ns *ns*)
+
+;(logging-config/set-logger! :level :debug)
+;(debug/wrap-with-log-debug #'send-patch-via-agent)
+;(debug/unwrap-with-log-debug #'send-patch-via-agent)
+
+

@@ -9,6 +9,7 @@
     [org.apache.commons.lang3 SystemUtils]
     )
   (:require
+    [cider-ci.ex.scripts.exec.shared :refer :all]
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.fs :as ci-fs]
     [clj-commons-exec :as commons-exec]
@@ -105,23 +106,45 @@
        (map #(future (kill-pid %)))
        (map deref)))
 
-(defn- terminate-via-process-tree [exec-future script-atom]
+(defn- terminate-via-process-tree [script-atom]
   (if-let [initial-pids (get-initial-pids-or-nil @script-atom)]
     (let [pids (add-descendant-pids (set initial-pids))]
       (kill-all-pids pids))
     (logging/warn "no pids present for " script-atom)))
 
-(defn- terminate-via-commons-exec-watchdog [exec-future script-atom]
+(defn- terminate-via-taskkill [script-atom]
+  (if-let [pid (-> @script-atom get-initial-pids-or-nil first)]
+    (let [cmd ["taskkill" "/F" "/T" "/PID" pid]
+          res (deref (commons-exec/sh cmd))]
+      (logging/debug 'killed {:cmd cmd :res res})
+      res)))
+
+(defn- terminate-via-commons-exec-watchdog [script-atom]
   (.destroyProcess (:watchdog @script-atom)))
 
-(defn terminate [exec-future script-atom]
+(defn- wait-for-realized-or-expired-not-over [script-atom ds]
+  (while (and (not (realized? (-> @script-atom :exec-future)))
+              (not (expired? script-atom ds)))
+    (Thread/sleep 1000)))
+
+
+(defn terminate [script-atom]
   (cond
-    SystemUtils/IS_OS_UNIX (terminate-via-process-tree exec-future script-atom)
-    :else (logging/warn "Only the parent process is killed on this system."))
-  (terminate-via-commons-exec-watchdog exec-future script-atom))
+    SystemUtils/IS_OS_UNIX (terminate-via-process-tree script-atom)
+    SystemUtils/IS_OS_WINDOWS (terminate-via-taskkill script-atom)
+    :else (do (logging/warn "Only the parent process is killed on this system.")
+              (terminate-via-commons-exec-watchdog script-atom)))
+  (wait-for-realized-or-expired-not-over script-atom (time/seconds 15))
+  (when-not (realized? (-> @script-atom :exec-future))
+    (logging/warn "Script execution was not terminated after 15 Secs overtime." script-atom)
+    (terminate-via-commons-exec-watchdog script-atom)
+    (wait-for-realized-or-expired-not-over script-atom (time/seconds 30))
+    (when-not (realized? (-> @script-atom :exec-future))
+      (throw (IllegalStateException.
+               (str "Script exec could not be terminated after 30 secs overtime." script-atom))))))
 
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
 ;(remove-ns (symbol (str *ns*)))
-(debug/debug-ns *ns*)
+;(debug/debug-ns *ns*)

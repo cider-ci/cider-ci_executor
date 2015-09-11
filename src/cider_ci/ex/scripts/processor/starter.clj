@@ -76,7 +76,6 @@
              agent-name)
       (get agent-name)))
 
-
 (defn exec-inside-agent [agent-state script-atom]
   (when (= "waiting" (:state @script-atom))
     (exec/execute script-atom))

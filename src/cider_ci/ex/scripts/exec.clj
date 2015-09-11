@@ -8,8 +8,9 @@
     [org.apache.commons.lang3 SystemUtils]
     )
   (:require
-    [cider-ci.ex.scripts.script :as script]
+    [cider-ci.ex.scripts.exec.shared :refer :all]
     [cider-ci.ex.scripts.exec.terminator :refer [terminate create-watchdog pid-file-path]]
+    [cider-ci.ex.scripts.script :as script]
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.fs :as ci-fs]
     [clj-commons-exec :as commons-exec]
@@ -48,7 +49,7 @@
 ;### script & wrapper file ####################################################
 
 (def wrapper-extension
-  (cond SystemUtils/IS_OS_WINDOWS ".ps1"
+  (cond SystemUtils/IS_OS_WINDOWS ".fsx"
         SystemUtils/IS_OS_UNIX ""))
 
 (defn- script-file-path [params]
@@ -76,8 +77,7 @@
 (defn- sudo-env-vars [vars]
   (->> vars
        (map (fn [[k v]]
-              (str k "=" v )))
-       ))
+              (str k "=" v )))))
 
 ;### wrapper ##################################################################
 
@@ -88,9 +88,14 @@
                                            :script-file-path (script-file-path params)
                                            :working-dir-path (working-dir params)
                                            })
-    SystemUtils/IS_OS_WINDOWS (script/render "wrapper.ps1"
-                                             {:script-file-path (script-file-path params)
-                                              :working-dir-path (working-dir params)})))
+    SystemUtils/IS_OS_WINDOWS (script/render "wrapper.fsx"
+                                             {:pid-file-path (pid-file-path params)
+                                              :script-file-path (script-file-path params)
+                                              :working-dir-path (working-dir params)
+                                              :exec-user-name "cider-ci_exec-user"
+                                              :exec-user-password "cider-ci_exec-user"
+                                              :environment-variables (prepare-env-variables params)
+                                              })))
 
 (defn- wrapper-file-path [params]
   (str (:private_dir params) File/separator
@@ -115,7 +120,8 @@
     SystemUtils/IS_OS_UNIX (concat ["sudo" "-u" (exec-user-name)]
                                    (-> params prepare-env-variables sudo-env-vars)
                                    ["-n" "-i" (:wrapper-file params)])
-    SystemUtils/IS_OS_WINDOWS ["PowerShell.exe" "-ExecutionPolicy" "ByPass" "-File" (:wrapper-file params)]))
+    SystemUtils/IS_OS_WINDOWS [(-> (get-config) :windows :fsi_path)
+                               (:wrapper-file params)]))
 
 (defn- commons-exec-sh [command env-variables watchdog]
   (commons-exec/sh
@@ -138,64 +144,56 @@
    :stdout (:out exec-res)
    :stderr (:err exec-res)
    :error (:error exec-res)
-   })
+   :errors (->> (conj []
+                      (:error exec-res)
+                      (:exception exec-res))
+                (filter identity))})
 
 (defn- set-script-atom-for-execption [script-atom e]
   (let [e-str (thrown/stringify e)]
     (logging/warn e-str)
+    (add-error script-atom e-str)
     (swap! script-atom
-           (fn [params e-str]
+           (fn [params]
              (conj params
                    {:state "failed"
-                    :finished_at (time/now)
-                    :error e-str }))
-           e-str )))
+                    :finished_at (time/now)})))))
 
-(def ^:private debug-recent-execs (atom '()))
-
-(defn- debug-recent-execs-push [exec]
-  (swap! debug-recent-execs (fn [re e] (conj (take 5 re ) e)) exec))
+(defn- wait-for-or-terminate [script-atom]
+  (let [exec-future (:exec-future @script-atom)
+        timeout (:timeout @script-atom)
+        started-at (:started_at @script-atom)]
+    (while (not (realized? exec-future))
+      (when (expired? script-atom)
+        (add-error script-atom "Timeout reached!")
+        (terminate script-atom))
+      (when (:terminate @script-atom)
+        (add-error script-atom "Termination requested!")
+        (terminate script-atom))
+      (when (expired? script-atom (time/seconds 60))
+        (throw (IllegalStateException. (str "Giving up to wait for termination!" @script-atom))))
+      (Thread/sleep 1000))))
 
 (defn execute [script-atom]
-  (debug-recent-execs-push script-atom)
-  (try (let [timeout (or (:timeout @script-atom) 200)
-             started-at (time/now)
-             watchdog (create-watchdog)]
-         (logging/debug "TIMEOUT" timeout)
-         (swap! script-atom
-                (fn [params watchdog started-at]
-                  (conj params
-                        {:started_at started-at
-                         :state "executing"
-                         :watchdog watchdog
-                         :environment-variables (prepare-env-variables params)
-                         :script-file (create-script-file params)
-                         :wrapper-file (create-wrapper-file params)
-                         }))
-                watchdog started-at)
-         (let [exec-future (exec-sh @script-atom)]
-           (loop []
-             (logging/debug 'eval-termination @script-atom)
-             (when
-               (and (not (realized? exec-future))
-                    (or
-                      (:terminate @script-atom)
-                      (time/after? (time/now)
-                                   (time/plus started-at (time/seconds timeout)))))
-               (terminate exec-future script-atom))
-             (when-not (realized? exec-future)
-               (Thread/sleep 100)
-               (recur)))
-           (swap! script-atom
-                  (fn [params res]
-                    (conj params res))
-                  (get-final-parameters @exec-future))))
+  (try (merge-params script-atom
+                     {:started_at (time/now)
+                      :state "executing"
+                      :watchdog (create-watchdog)
+                      :environment-variables (prepare-env-variables @script-atom)
+                      :script-file (create-script-file @script-atom)
+                      :wrapper-file (create-wrapper-file @script-atom)})
+       (let [exec-future (exec-sh @script-atom)]
+         (merge-params script-atom {:exec-future exec-future})
+         (wait-for-or-terminate script-atom)
+         (merge-params script-atom (get-final-parameters @exec-future)))
+       script-atom
        (catch Exception e
-         (set-script-atom-for-execption script-atom e))))
+         (set-script-atom-for-execption script-atom e)
+         script-atom)))
 
 
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
 ;(remove-ns (symbol (str *ns*)))
-(debug/debug-ns *ns*)
+;(debug/debug-ns *ns*)

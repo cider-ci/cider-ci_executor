@@ -35,8 +35,7 @@
 
 ;#### prepare trial ###########################################################
 (defn- set-and-send-start-params [trial]
-  (let [params-atom (get-params-atom trial)
-        report-agent (:report-agent trial)]
+  (let [params-atom (get-params-atom trial)]
     (swap! params-atom (fn [params] (conj params {:state "executing"})))
     (send-patch-via-agent trial (select-keys @params-atom [:state :started_at])))
   trial)

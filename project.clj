@@ -13,6 +13,7 @@
                  [cider-ci/clj-utils "3.2.0-beta.4"]
                  [clojure-ini "0.0.2"]
                  [drtom/clj-uuid "0.0.8"]
+                 [drtom/logbug "1.3.0"]
                  [me.raynes/fs "1.4.6"]
                  [org.apache.commons/commons-lang3 "3.4"]
                  [org.clojars.hozumi/clj-commons-exec "1.2.0"]
