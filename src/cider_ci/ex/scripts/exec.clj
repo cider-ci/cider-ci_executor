@@ -11,6 +11,7 @@
     [cider-ci.ex.scripts.exec.shared :refer :all]
     [cider-ci.ex.scripts.exec.terminator :refer [terminate create-watchdog pid-file-path]]
     [cider-ci.ex.scripts.script :as script]
+    [cider-ci.ex.shared :refer :all]
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.fs :as ci-fs]
     [clj-commons-exec :as commons-exec]
@@ -67,12 +68,11 @@
 
 ;### user and sudo ############################################################
 
-(defn- get-current-user-name []
-  (System/getProperty "user.name"))
-
-(defn- exec-user-name []
-  (or (-> (get-config) :exec-user :name)
-      (get-current-user-name)))
+(defn- exec-user-password! []
+  (or (-> (get-config) :exec-user :password)
+      (-> "CIDER_CI_EXEC_USER_PASSWORD" System/getenv)
+      (throw (IllegalStateException.
+               "Missing required CIDER_CI_EXEC_USER_PASSWORD."))))
 
 (defn- sudo-env-vars [vars]
   (->> vars
@@ -92,8 +92,7 @@
                                              {:pid-file-path (pid-file-path params)
                                               :script-file-path (script-file-path params)
                                               :working-dir-path (working-dir params)
-                                              :exec-user-name "cider-ci_exec-user"
-                                              :exec-user-password "cider-ci_exec-user"
+                                              :exec-user-name (exec-user-name)
                                               :environment-variables (prepare-env-variables params)
                                               })))
 
@@ -115,7 +114,7 @@
 
 ;##############################################################################
 
-(defn- command [params]
+(defn- wrapper-command [params]
   (cond
     SystemUtils/IS_OS_UNIX (concat ["sudo" "-u" (exec-user-name)]
                                    (-> params prepare-env-variables sudo-env-vars)
@@ -123,17 +122,20 @@
     SystemUtils/IS_OS_WINDOWS [(-> (get-config) :windows :fsi_path)
                                (:wrapper-file params)]))
 
-(defn- commons-exec-sh [command env-variables watchdog]
-  (commons-exec/sh
-    command
-    {:env (conj {} (System/getenv) env-variables)
-     :watchdog watchdog }))
+(defn- wrapper-env-vars [params]
+  (cond
+    SystemUtils/IS_OS_UNIX {}
+    SystemUtils/IS_OS_WINDOWS {"CIDER_CI_EXEC_USER_PASSWORD"
+                                (exec-user-password!)}))
 
 (defn exec-sh [params]
-  (let [command (command params)]
-    (commons-exec-sh command
-                     (:environment-variables params)
-                     (:watchdog params))))
+  (let [command (wrapper-command params)
+        watchdog (:watchdog params)
+        env-vars (wrapper-env-vars params)]
+    (commons-exec/sh
+      command
+      {:env (wrapper-env-vars params)
+       :watchdog watchdog})))
 
 (defn- get-final-parameters [exec-res]
   {:finished_at (time/now)

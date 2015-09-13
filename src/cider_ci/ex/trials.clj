@@ -3,9 +3,6 @@
 ; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.trials
-  (:import
-    [java.io File]
-    )
   (:require
     [cider-ci.ex.accepted-repositories :as accepted-repositories]
     [cider-ci.ex.attachments :as attachments]
@@ -14,26 +11,29 @@
     [cider-ci.ex.reporter :as reporter]
     [cider-ci.ex.result :as result]
     [cider-ci.ex.scripts.processor]
+    [cider-ci.ex.shared :refer :all]
     [cider-ci.ex.trials.helper :refer :all]
     [cider-ci.ex.trials.state :refer [create-trial]]
     [cider-ci.utils.daemon :as daemon]
     [cider-ci.utils.http :refer [build-server-url]]
     [cider-ci.utils.map :refer [deep-merge]]
-    [clj-commons-exec :as commons-exec]
+    [cider-ci.utils.system :as system]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
-    [clojure.pprint :as pprint]
-    [clojure.stacktrace :as stacktrace]
     [clojure.tools.logging :as logging]
     [drtom.logbug.catcher :as catcher]
     [drtom.logbug.debug :as debug]
     [drtom.logbug.thrown :as thrown]
     [me.raynes.fs :as clj-fs]
-    [robert.hooke :as hooke]
+    )
+  (:import
+    [org.apache.commons.lang3 SystemUtils]
+    [java.io File]
     ))
 
 
 ;#### prepare trial ###########################################################
+
 (defn- set-and-send-start-params [trial]
   (let [params-atom (get-params-atom trial)]
     (swap! params-atom (fn [params] (conj params {:state "executing"})))
@@ -73,10 +73,15 @@
         working-dir (git/prepare-and-create-working-dir @params-atom)
         private-dir (str working-dir File/separator ".cider-ci_private")]
     (clj-fs/mkdir private-dir)
+    (cond
+      SystemUtils/IS_OS_UNIX (system/exec-with-success-or-throw
+                               ["chown" "-R" (exec-user-name) working-dir])
+      SystemUtils/IS_OS_WINDOWS (system/exec-with-success-or-throw
+                                  ["icacls" working-dir "/grant"
+                                   (str (exec-user-name) ":(OI)(CI)F")]))
     (swap! params-atom
            #(assoc %1 :working_dir %2 :private_dir %3)
-           working-dir
-           private-dir))
+           working-dir private-dir))
   trial)
 
 (defn- occupy-and-insert-ports [trial]
@@ -132,6 +137,7 @@
 
 
 ;#### execute #################################################################
+
 (defn execute [params]
   (let [trial (create-trial params)]
     (try (accepted-repositories/assert-satisfied (:git_url params))
@@ -162,6 +168,7 @@
 
 
 ;#### initialize ###############################################################
+
 (defn initialize []
   )
 

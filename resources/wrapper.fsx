@@ -10,25 +10,37 @@ let interpreter = """cmd.exe"""
 let interpreterArguments = """/c {{script-file-path}}"""
 let pidFile = """{{pid-file-path}}"""
 let execUserName =  """{{exec-user-name}}"""
-let execUserPassword = """{{exec-user-password}}"""
 
-let addEnvVars(startInfo : ProcessStartInfo) =
-  {% for k,v in environment-variables %}
-  if startInfo.EnvironmentVariables.ContainsKey """{{k}}"""
-    then startInfo.EnvironmentVariables.Remove """{{k}}"""
-  startInfo.EnvironmentVariables.Add("""{{k}}""", """{{v}}""")
-  {% endfor %}
-  startInfo
+// CONST ######################################################################
+
+let EXEC_USER_PASSWORD_ENV_VAR_KEY = "CIDER_CI_EXEC_USER_PASSWORD"
 
 // FUN ########################################################################
+
+let removeIfExistsEnvVar (startInfo : ProcessStartInfo, key) =
+  if startInfo.EnvironmentVariables.ContainsKey key
+    then startInfo.EnvironmentVariables.Remove key
+  ()
+
+let overwriteEnvVar (startInfo : ProcessStartInfo, key, value) =
+  removeIfExistsEnvVar(startInfo, key)
+  startInfo.EnvironmentVariables.Add(key, value)
+  ()
+
+let setEnvVars(startInfo : ProcessStartInfo) =
+  removeIfExistsEnvVar(startInfo,EXEC_USER_PASSWORD_ENV_VAR_KEY)
+  {% for k,v in environment-variables %}
+  overwriteEnvVar(startInfo, """{{k}}""", """{{v}}""")
+  {% endfor %}
+  ()
 
 let envVarOrFail s =
   let pw = System.Environment.GetEnvironmentVariable(s)
   if pw = null then failwith(sprintf "The EnvVar for %s was not found!" s)
     else pw
 
-let userPassword _ =
-  envVarOrFail "CIDER_CI_EXEC_USER_PASSWORD"
+let execUserPassword _ =
+  envVarOrFail EXEC_USER_PASSWORD_ENV_VAR_KEY
 
 let toSecureString s =
     let secureString = new SecureString()
@@ -44,9 +56,9 @@ let buildStartInfo _ =
   si.RedirectStandardError <- true
   si.RedirectStandardOutput <- true
   si.UserName <- execUserName
-  // TODO use the one from env var
-  si.Password <- toSecureString execUserPassword
+  si.Password <- toSecureString(execUserPassword())
   si.LoadUserProfile <- true
+  setEnvVars si
   si
 
 let buildProcess(startInfo : ProcessStartInfo) =
@@ -57,11 +69,9 @@ let buildProcess(startInfo : ProcessStartInfo) =
 let writePidFile(proc : Process) =
   let pid = proc.Id
   System.IO.File.WriteAllText(pidFile, sprintf "%d" pid)
-  printf "PID %d" pid
 
 let runit _ =
   let startInfo = buildStartInfo()
-  addEnvVars startInfo |> ignore
   let proc = buildProcess startInfo
   proc.Start() |> ignore
   writePidFile proc
@@ -70,10 +80,9 @@ let runit _ =
   printfn "%s" proc_stdout
   let proc_stderr = proc.StandardError.ReadToEnd()
   eprintfn "%s" proc_stderr
-  //System.Threading.Thread.Sleep(10000);
   exit proc.ExitCode
 
-let handleFail(ex : Exception)=
+let handleFailure(ex : Exception)=
   eprintf "%s" ex.Message
   exit -1
 
@@ -83,4 +92,4 @@ let handleFail(ex : Exception)=
 try
   runit()
 with
-  | ex -> handleFail(ex)
+  | ex -> handleFailure(ex)

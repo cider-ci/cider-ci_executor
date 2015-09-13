@@ -22,10 +22,6 @@
     [drtom.logbug.thrown :as thrown]
     ))
 
-
-; TODO
-; http://stackoverflow.com/questions/5614164/terminate-a-process-of-a-process-tree-in-command-line-windows
-
 ;### termination ##############################################################
 ; It seems not possible to guarantee that all subprocesses are killed.  The
 ; default strategy is to rely on "Apache Commons Exec"  which sometimes works
@@ -104,7 +100,8 @@
 (defn- kill-all-pids [pids]
   (->> pids
        (map #(future (kill-pid %)))
-       (map deref)))
+       (map deref)
+       doall))
 
 (defn- terminate-via-process-tree [script-atom]
   (if-let [initial-pids (get-initial-pids-or-nil @script-atom)]

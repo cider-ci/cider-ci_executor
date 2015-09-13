@@ -70,5 +70,3 @@
 ;(logging-config/set-logger! :level :debug)
 ;(debug/wrap-with-log-debug #'send-patch-via-agent)
 ;(debug/unwrap-with-log-debug #'send-patch-via-agent)
-
-

@@ -10,21 +10,17 @@
     [cider-ci.ex.git.repository :as repository]
     [cider-ci.ex.git.submodules :as submodules]
     [cider-ci.utils.config :as config :refer [get-config]]
-    [drtom.logbug.debug :as debug]
-    [drtom.logbug.thrown :as thrown]
     [cider-ci.utils.http :refer [build-server-url]]
-    [cider-ci.utils.system :as system]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clj-uuid]
-    [clojure.pprint :as pprint]
     [clojure.string :as string :refer [blank?]]
     [clojure.tools.logging :as logging]
+    [drtom.logbug.debug :as debug]
+    [drtom.logbug.thrown :as thrown]
     [me.raynes.fs :as fs]
     )
-  (:import
-    [org.apache.commons.lang3 SystemUtils]
-    ))
+  )
 
 ;### Core Git #################################################################
 
@@ -44,12 +40,6 @@
       (repository/serialized-clone-to-dir repository-url commit-id working-dir)
       (when (-> params :git-options :submodules :clone)
         (submodules/update working-dir))
-      (when-let [user (-> (get-config) :exec_user)]
-        (cond
-          SystemUtils/IS_OS_UNIX (system/exec-with-success-or-throw
-                                   ["chown" "-R" user working-dir])
-          SystemUtils/IS_OS_WINDOWS (system/exec-with-success-or-throw
-                                      ["icacls" working-dir "/grant" (str user ":(OI)(CI)F")])))
       working-dir)))
 
 ;### Debug #####################################################################
