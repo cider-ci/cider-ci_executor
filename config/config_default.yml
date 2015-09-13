@@ -18,9 +18,13 @@ reporter:
   max_retries: 1
   retry_ms_factor: 1000
 
-exec_user: NULL
+exec_user:
+  name: NULL
+  password: NULL
 
 sync_interval: 1.0
+
+trial_retention_duration: 5 Minutes
 
 tmp_dir: 'tmp'
 
@@ -34,7 +38,6 @@ services:
       context: '/cider-ci'
       sub_context: '/dispatcher'
       ssl: false
-
 
 windows:
   fsi_path: C:\Program Files (x86)\Microsoft SDKs\F#\4.0\Framework\v4.0\Fsi.exe

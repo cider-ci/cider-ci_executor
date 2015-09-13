@@ -16,7 +16,7 @@
   (System/getProperty "user.name"))
 
 (defn exec-user-name []
-  (or (-> (get-config) :exec-user :name)
+  (or (-> (get-config) :exec_user :name)
       (get-current-user-name)))
 
 ;### Debug #####################################################################

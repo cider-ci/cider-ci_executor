@@ -3,32 +3,23 @@
 ; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.trials.state
-  (:import
-    [java.io File]
-    )
   (:require
-    [cider-ci.ex.attachments :as attachments]
-    [cider-ci.ex.git :as git]
-    [cider-ci.ex.port-provider :as port-provider]
-    [cider-ci.ex.reporter :as reporter]
-    [cider-ci.ex.result :as result]
-    [cider-ci.ex.scripts.processor]
     [cider-ci.ex.trials.helper :refer :all]
+    [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.daemon :as daemon]
-    [cider-ci.utils.http :refer [build-server-url]]
-    [cider-ci.utils.map :refer [deep-merge]]
-    [clj-commons-exec :as commons-exec]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
-    [clojure.pprint :as pprint]
-    [clojure.stacktrace :as stacktrace]
     [clojure.tools.logging :as logging]
     [drtom.logbug.catcher :as catcher]
     [drtom.logbug.debug :as debug]
     [drtom.logbug.thrown :as thrown]
-    [robert.hooke :as hooke]
+    [duckling.core :as duckling]
+    )
+  (:import
+    [java.io File]
     ))
 
+(duckling/load! {:en$core {:corpus ["en.numbers"] :rules ["en.numbers" "en.duration"]}})
 
 ;#### keep and manage state of trials #########################################
 
@@ -69,14 +60,24 @@
 
 ;### sweep ####################################################################
 
+(defn- trial-retention-duration []
+  (or (catcher/wrap-with-suppress-and-log-error
+        (-> (get-config) :trial_retention_duration
+            (#(duckling/parse :en$core % [:duration]))
+            first :value :normalized :value))
+      (* 60 5)))
+
 (defn- trials-to-be-swept  []
   (->> @trials-atom
        (map second)
        (map :params-atom)
        (map deref)
        (filter :finished_at)
-       (filter #(time/before? (:finished_at %)
-                              (time/minus (time/now) (time/minutes 5))))))
+       (filter #(time/before?
+                  (:finished_at %)
+                  (time/minus (time/now)
+                              (time/seconds
+                                (trial-retention-duration)))))))
 
 (defn- sweep []
   (doseq [trial (trials-to-be-swept)]
@@ -85,8 +86,7 @@
              (dissoc current (:trial_id trial)))
            trial)))
 
-(daemon/define "sweep" start-sweep stop-sweep 60
-  (sweep))
+(daemon/define "sweep" start-sweep stop-sweep 10 (sweep))
 
 (defn initialize []
   (start-sweep))

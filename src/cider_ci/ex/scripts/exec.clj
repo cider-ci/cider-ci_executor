@@ -69,7 +69,7 @@
 ;### user and sudo ############################################################
 
 (defn- exec-user-password! []
-  (or (-> (get-config) :exec-user :password)
+  (or (-> (get-config) :exec_user :password)
       (-> "CIDER_CI_EXEC_USER_PASSWORD" System/getenv)
       (throw (IllegalStateException.
                "Missing required CIDER_CI_EXEC_USER_PASSWORD."))))

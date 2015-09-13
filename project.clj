@@ -20,6 +20,7 @@
                  [org.clojure/algo.generic "0.1.2"]
                  [org.clojure/tools.nrepl "0.2.10"]
                  [selmer "0.9.1"]
+                 [wit/duckling "0.3.10"]
                  ]
   :source-paths ["src"]
   :profiles {:dev
