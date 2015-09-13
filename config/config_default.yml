@@ -1,3 +1,7 @@
+sync_interval_pause_duration: 10 Seconds
+
+trial_retention_duration: 5 Minutes
+
 nrepl:
   port: 7883
   bind: "127.0.0.1"
@@ -21,10 +25,6 @@ reporter:
 exec_user:
   name: NULL
   password: NULL
-
-sync_interval: 1.0
-
-trial_retention_duration: 5 Minutes
 
 tmp_dir: 'tmp'
 

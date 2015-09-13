@@ -5,7 +5,7 @@
 (ns cider-ci.ex.trials.state
   (:require
     [cider-ci.ex.trials.helper :refer :all]
-    [cider-ci.utils.config :as config :refer [get-config]]
+    [cider-ci.utils.config :as config :refer [get-config parse-config-duration-to-seconds]]
     [cider-ci.utils.daemon :as daemon]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
@@ -13,13 +13,11 @@
     [drtom.logbug.catcher :as catcher]
     [drtom.logbug.debug :as debug]
     [drtom.logbug.thrown :as thrown]
-    [duckling.core :as duckling]
     )
   (:import
     [java.io File]
     ))
 
-(duckling/load! {:en$core {:corpus ["en.numbers"] :rules ["en.numbers" "en.duration"]}})
 
 ;#### keep and manage state of trials #########################################
 
@@ -61,10 +59,8 @@
 ;### sweep ####################################################################
 
 (defn- trial-retention-duration []
-  (or (catcher/wrap-with-suppress-and-log-error
-        (-> (get-config) :trial_retention_duration
-            (#(duckling/parse :en$core % [:duration]))
-            first :value :normalized :value))
+  (or (catcher/wrap-with-suppress-and-log-warn
+        (parse-config-duration-to-seconds :trial_retention_duration))
       (* 60 5)))
 
 (defn- trials-to-be-swept  []

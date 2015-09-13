@@ -9,10 +9,10 @@
     [cider-ci.ex.accepted-repositories :as accepted-repositories]
     [cider-ci.ex.scripts.processor.abort :as scripts-abort]
     [cider-ci.ex.traits :as traits]
-    [cider-ci.ex.trials.state :as trials.state]
     [cider-ci.ex.trials :as trials]
-    [cider-ci.utils.config :refer [get-config]]
-    [cider-ci.utils.daemon :as daemon]
+    [cider-ci.ex.trials.state :as trials.state]
+    [cider-ci.utils.config :refer [get-config parse-config-duration-to-seconds]]
+    [cider-ci.utils.daemon :refer [defdaemon]]
     [cider-ci.utils.http :as http :refer [build-service-url]]
     [cider-ci.utils.map :refer [deep-merge]]
     [clj-yaml.core :as yaml]
@@ -65,11 +65,13 @@
         (terminate-aborting (->> body :trials-being-processed))
         ))))
 
-
-(daemon/define "sync" start-sync stop-sync (-> (get-config) :sync_interval)
-  (sync))
+(defn- sync-interval-pause-duration []
+  (or (catcher/wrap-with-suppress-and-log-warn
+        (parse-config-duration-to-seconds :sync_interval_pause_duration))
+      3))
 
 (defn initialize []
+  (defdaemon "sync" (sync-interval-pause-duration) (sync))
   (start-sync))
 
 ;### Debug ####################################################################

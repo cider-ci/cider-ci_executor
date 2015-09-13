@@ -5,12 +5,14 @@
 (ns cider-ci.ex.shared
   (:require
     [cider-ci.utils.config :as config :refer [get-config]]
-    [drtom.logbug.debug :as debug]
-    [drtom.logbug.thrown :as thrown]
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
+    [drtom.logbug.catcher :as catcher]
+    [drtom.logbug.debug :as debug]
+    [drtom.logbug.thrown :as thrown]
     ))
 
+;##############################################################################
 
 (defn- get-current-user-name []
   (System/getProperty "user.name"))

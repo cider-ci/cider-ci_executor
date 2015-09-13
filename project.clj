@@ -10,7 +10,7 @@
   :dependencies [
                  [camel-snake-kebab "0.3.2"]
                  [cider-ci/clj-auth "3.0.0"]
-                 [cider-ci/clj-utils "3.2.0-beta.4"]
+                 [cider-ci/clj-utils "3.2.0"]
                  [clojure-ini "0.0.2"]
                  [drtom/clj-uuid "0.0.8"]
                  [drtom/logbug "1.3.0"]
@@ -20,7 +20,6 @@
                  [org.clojure/algo.generic "0.1.2"]
                  [org.clojure/tools.nrepl "0.2.10"]
                  [selmer "0.9.1"]
-                 [wit/duckling "0.3.10"]
                  ]
   :source-paths ["src"]
   :profiles {:dev
