@@ -15,8 +15,8 @@ http:
 name: DemoExecutor
 
 basic_auth:
-  username: DemoExecutor
-  password: 5cfc3c91599a118ec0c67a6f2c15e7456cea71fa
+  username: 35cff40c-b4f8-4ca3-9217-d49c9c35f375
+  password: 90b796aca99df1a74b172f3adee6f170fff3ea4e
 
 reporter:
   max_retries: 1
