@@ -17,5 +17,7 @@
 /tmp
 config/config.yml
 config/traits.txt
+config/accepted-repositories_default.txt
+config/traits_default.txt
 pom.xml
 pom.xml.asc
