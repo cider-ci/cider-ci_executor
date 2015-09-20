@@ -60,8 +60,15 @@
   (initialize-and-configure-dir :repositories_dir)
   (initialize-and-configure-dir :working_dir :clean true))
 
+(defn log-env []
+  (logging/info 'current-user (System/getProperty "user.name"))
+  (doseq [[k v] (System/getenv)]
+    (logging/info 'env-var k v)
+    ))
+
 (defn -main [& args]
   (catcher/wrap-with-log-error
+    (log-env)
     (drtom.logbug.thrown/reset-ns-filter-regex #".*cider.ci.*")
     (logging/info "starting -main " args)
     (config/initialize)

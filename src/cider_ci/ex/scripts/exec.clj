@@ -70,7 +70,7 @@
 
 (defn- exec-user-password! []
   (or (-> (get-config) :exec_user :password)
-      (-> "CIDER_CI_EXEC_USER_PASSWORD" System/getenv)
+      (-> (System/getenv) (get "CIDER_CI_EXEC_USER_PASSWORD"))
       (throw (IllegalStateException.
                "Missing required CIDER_CI_EXEC_USER_PASSWORD."))))
 
