@@ -16,8 +16,7 @@
 /targets/
 /tmp
 config/config.yml
-config/traits.txt
-config/accepted-repositories_default.txt
-config/traits_default.txt
+config/traits.yml
+config/accepted-repositories.yml
 pom.xml
 pom.xml.asc

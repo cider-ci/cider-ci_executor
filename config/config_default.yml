@@ -1,4 +1,4 @@
-sync_interval_pause_duration: 10 Seconds
+sync_interval_pause_duration: 3 Seconds
 
 trial_retention_duration: 5 Minutes
 

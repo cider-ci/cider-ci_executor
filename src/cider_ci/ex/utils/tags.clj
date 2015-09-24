@@ -6,33 +6,38 @@
 (ns cider-ci.ex.utils.tags
   (:require
     [clj-logging-config.log4j :as logging-config]
+    [clj-yaml.core :as yaml]
+    [clojure.java.io :as io]
     [clojure.set :refer [union]]
     [clojure.string :refer [blank? lower-case split trim]]
     [clojure.tools.logging :as logging]
     [clojure.tools.logging :as logging]
     [drtom.logbug.debug :as debug]
-    [clojure.java.io :as io]
+    [me.raynes.fs :as clj-fs]
     ))
+; TODO change ansible inventory !
 
-(defn read-tags-from-files [filenames]
-  (loop [tags (sorted-set)
-         filenames filenames]
-    (if-let [filename (first filenames)]
-      (if (.exists (io/as-file filename))
-        (recur (try (let [add-on-string (slurp filename)]
-                      (-> add-on-string
-                          (split #",")
-                          (#(map trim %))
-                          (#(remove blank? %))
-                          (#(union tags (apply sorted-set %)))))
-                    (catch Exception e
-                      (logging/warn "Failed to read " filename " because " e)
-                      tags))
-               (rest filenames))
-        (recur tags (rest filenames)))
-      tags)))
+(defn- read-and-merge-tags
+  ([]
+   (sorted-set))
+  ([tag-set file]
+   (if (.exists file)
+     (try (->> (slurp file)
+               yaml/parse-string
+               (map str)
+               (map clojure.string/trim)
+               (remove blank?)
+               (apply sorted-set)
+               (union tag-set))
+          (catch Exception e
+            (logging/warn "Failed to read tags from " file " because " e)
+            tag-set))
+     tag-set)))
 
+(defn read-tags-from-yaml-files [filenames]
+ (reduce read-and-merge-tags (sorted-set) (map clj-fs/absolute filenames)))
 
+;(read-tags-from-yaml-files ["config/traits.yml"])
 
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)

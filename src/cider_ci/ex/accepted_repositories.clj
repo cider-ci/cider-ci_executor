@@ -5,11 +5,10 @@
 (ns cider-ci.ex.accepted-repositories
   (:require
     [cider-ci.ex.utils.tags :refer :all]
-    [cider-ci.utils.fs :refer :all]
     [cider-ci.utils.config-loader :as config-loader]
-    [cider-ci.utils.daemon :as daemon]
+    [cider-ci.utils.daemon :as daemon :refer [defdaemon]]
+    [cider-ci.utils.fs :refer :all]
     [cider-ci.utils.map :refer [deep-merge]]
-    [clj-yaml.core :as yaml]
     [clojure.java.io :as io]
     [clojure.set :refer [union]]
     [clojure.string :refer [blank? lower-case split trim]]
@@ -27,7 +26,6 @@
     (reset! accepted-repositories new-accepted-repositories)
     (logging/info "accepted-repositories changed to " @accepted-repositories)))
 
-
 (defn assert-satisfied [repository-url]
   (when (clojure.string/blank? repository-url)
     (throw (ex-info "The repository-url may not be empty."
@@ -41,18 +39,19 @@
                        :repository-url repository-url
                        :accepted-repositories @accepted-repositories}))))
 
-(daemon/define "reload-accepted-repositories"
-  start-read-accepted-repositories
-  stop-read-accepted-repositories 1
-  (->> [(system-path-abs "etc" "cider-ci" "accepted-repositories.txt")
-        (system-path "config" "accepted-repositories_default.txt")
-        (system-path "config" "accepted-repositories.txt")]
-       (filter identity)
-       (read-tags-from-files)
+(defn- reload-accepted-repositories []
+  (->> [(system-path ".." "config" "accepted-repositories.yml")
+        (system-path "config" "accepted-repositories.yml")]
+       (read-tags-from-yaml-files)
        set-accepted-repositories))
 
+(defdaemon "reload-accepted-repositories" 1
+  (reload-accepted-repositories))
+
 (defn initialize []
-  (stop-read-accepted-repositories)
-  (start-read-accepted-repositories))
+  (start-reload-accepted-repositories))
 
-
+;### Debug ####################################################################
+;(logging-config/set-logger! :level :debug)
+;(logging-config/set-logger! :level :info)
+;(debug/debug-ns *ns*)

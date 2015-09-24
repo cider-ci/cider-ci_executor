@@ -15,7 +15,6 @@
     [cider-ci.utils.daemon :refer [defdaemon]]
     [cider-ci.utils.http :as http :refer [build-service-url]]
     [cider-ci.utils.map :refer [deep-merge]]
-    [clj-yaml.core :as yaml]
     [clojure.data.json :as json]
     [clojure.java.io :as io]
     [clojure.tools.logging :as logging]

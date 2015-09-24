@@ -10,7 +10,6 @@
     [cider-ci.utils.daemon :as daemon]
     [cider-ci.utils.fs :refer :all]
     [cider-ci.utils.map :refer [deep-merge]]
-    [clj-yaml.core :as yaml]
     [clojure.java.io :as io]
     [clojure.set :refer [union]]
     [clojure.string :refer [blank? lower-case split trim]]
@@ -28,16 +27,20 @@
     (reset! traits new-traits)
     (logging/info "traits changed to " @traits)))
 
+(defn- read-traits []
+  (->> [(system-path "config" "traits.yml")
+        (system-path ".." "config" "traits.yml")]
+       (read-tags-from-yaml-files)
+       set-traits))
 
 (daemon/define "reload-traits"
   start-read-traits stop-read-traits 1
-  (->> [(system-path-abs "etc" "cider-ci" "traits.txt")
-        (system-path "config" "traits_default.txt")
-        (system-path "config" "traits.txt")]
-       (filter identity)
-       (read-tags-from-files)
-       set-traits))
+  (read-traits))
 
 (defn initialize []
-  (stop-read-traits)
   (start-read-traits))
+
+;### Debug ####################################################################
+;(logging-config/set-logger! :level :debug)
+;(logging-config/set-logger! :level :info)
+;(debug/debug-ns *ns*)
