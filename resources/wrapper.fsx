@@ -55,9 +55,9 @@ let buildStartInfo _ =
   si.UseShellExecute <- false
   si.RedirectStandardError <- true
   si.RedirectStandardOutput <- true
-  si.UserName <- execUserName
-  si.Password <- toSecureString(execUserPassword())
-  si.LoadUserProfile <- true
+  // si.UserName <- execUserName
+  // si.Password <- toSecureString(execUserPassword())
+  // si.LoadUserProfile <- true
   setEnvVars si
   si
 

@@ -2,7 +2,7 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software.
 
-(defproject cider-ci_executor "3.0.0-rc.1"
+(defproject cider-ci_executor "3.0.0"
   :description "Executor for ider-CI."
   :url "https://github.com/DrTom/cider-ci_executor"
   :license {:name "GNU Affero General Public License"

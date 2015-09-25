@@ -68,12 +68,6 @@
 
 ;### user and sudo ############################################################
 
-(defn- exec-user-password! []
-  (or (-> (get-config) :exec_user :password)
-      (-> (System/getenv) (get "CIDER_CI_EXEC_USER_PASSWORD"))
-      (throw (IllegalStateException.
-               "Missing required CIDER_CI_EXEC_USER_PASSWORD."))))
-
 (defn- sudo-env-vars [vars]
   (->> vars
        (map (fn [[k v]]
@@ -122,20 +116,12 @@
     SystemUtils/IS_OS_WINDOWS [(-> (get-config) :windows :fsi_path)
                                (:wrapper-file params)]))
 
-(defn- wrapper-env-vars [params]
-  (cond
-    SystemUtils/IS_OS_UNIX {}
-    SystemUtils/IS_OS_WINDOWS {"CIDER_CI_EXEC_USER_PASSWORD"
-                                (exec-user-password!)}))
-
 (defn exec-sh [params]
   (let [command (wrapper-command params)
-        watchdog (:watchdog params)
-        env-vars (wrapper-env-vars params)]
+        watchdog (:watchdog params)]
     (commons-exec/sh
       command
-      {:env (wrapper-env-vars params)
-       :watchdog watchdog})))
+      {:watchdog watchdog})))
 
 (defn- get-final-parameters [exec-res]
   {:finished_at (time/now)
