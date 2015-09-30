@@ -29,16 +29,21 @@
   (->> (clj-fs/list-dir (get-working-dir))
        (filter clj-fs/directory?)))
 
-(defn- delete [dir]
+(defn- delete-recursively [file-or-string]
   (catcher/wrap-with-suppress-and-log-warn
-    (clj-fs/delete-dir dir)))
+    (let [file (clojure.java.io/file file-or-string)]
+      (when (.exists file)
+        (when (and (.isDirectory file) (not (Files/isSymbolicLink (.toPath file))))
+          (doseq [file (.listFiles file)]
+            (delete-recursively file)))
+        (.delete file)))))
 
 (defn- delete-orphans []
   (doseq [working-dir (get-trial-dirs)]
     (when-let [base-name (clj-fs/base-name working-dir)]
       (when-not (cider-ci.ex.trials.state/get-trial base-name)
         (logging/info "deleting working-dir " working-dir)
-        (delete working-dir)))))
+        (delete-recursively working-dir)))))
 
 (defdaemon "trial-working-dir-sweeper"
   1 (delete-orphans))
