@@ -3,6 +3,9 @@
 ; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.scripts.exec.shared
+  (:import
+    [java.io File]
+    )
   (:require
     [cider-ci.utils.config :as config :refer [get-config]]
     [clj-logging-config.log4j :as logging-config]
@@ -34,6 +37,9 @@
          (fn [params add-params]
            (merge params add-params))
          add-params))
+
+(defn working-dir [params]
+  (.getAbsolutePath (File. (:working_dir params))))
 
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)

@@ -19,6 +19,7 @@
 (defn- set-to-terminate-when-executing [trial]
   (->> (trials/get-scripts-atoms trial)
        (filter #(-> % deref executing?))
+       (filter #(-> % deref :ignore-abort not))
        (map (fn [script-atom]
               (swap! script-atom  #(assoc % :terminate true ))))
        doall))
@@ -26,6 +27,7 @@
 (defn set-to-skipped-when-pending [trial]
   (->> (trials/get-scripts-atoms trial)
        (filter #(-> % deref pending?))
+       (filter #(-> % deref :ignore-abort not))
        (map #(scripts-skipper/skip-script % "aborting"))
        doall))
 

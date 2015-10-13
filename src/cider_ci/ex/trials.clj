@@ -14,6 +14,7 @@
     [cider-ci.ex.shared :refer :all]
     [cider-ci.ex.trials.helper :refer :all]
     [cider-ci.ex.trials.state :refer [create-trial]]
+    [cider-ci.ex.trials.templates :refer :all]
     [cider-ci.utils.daemon :as daemon]
     [cider-ci.utils.http :refer [build-server-url]]
     [cider-ci.utils.map :refer [deep-merge]]
@@ -86,8 +87,8 @@
 
 (defn- occupy-and-insert-ports [trial]
   "Occupies free ports according to the :ports directive,
-  adds the corresponding :ports value to each script and
-  also returns the ports."
+  adds the corresponding :ports value to the trials aprams
+  and each script and also returns the ports."
   (let [params-atom (get-params-atom trial)
         ports (into {} (map (fn [[port-name port-params]]
                               [port-name (port-provider/occupy-port
@@ -95,9 +96,13 @@
                                            (:min port-params)
                                            (:max port-params))])
                             (:ports @params-atom)))]
+    (swap! (:params-atom trial)
+           (fn [params ports]
+             (assoc params :ports ports))
+           ports)
     (doseq [script-atom (get-scripts-atoms trial)]
       (swap! script-atom #(conj %1 {:ports %2}) ports))
-    ports))
+    ))
 
 (defn put-attachments [trial]
   (let [params-atom (get-params-atom trial)
@@ -146,6 +151,7 @@
               prepare-and-insert-scripts)
          (let [ports (occupy-and-insert-ports trial)]
            (try (->> trial
+                     render-templates
                      set-and-send-start-params
                      cider-ci.ex.scripts.processor/process
                      put-attachments

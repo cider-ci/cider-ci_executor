@@ -10,6 +10,7 @@
   (:require
     [cider-ci.ex.scripts.exec.shared :refer :all]
     [cider-ci.ex.scripts.exec.terminator :refer [terminate create-watchdog pid-file-path]]
+    [cider-ci.ex.environment-variables :as environment-variables]
     [cider-ci.ex.scripts.script :as script]
     [cider-ci.ex.shared :refer :all]
     [cider-ci.utils.config :as config :refer [get-config]]
@@ -32,20 +33,6 @@
     (:extension params) (:extension params)
     SystemUtils/IS_OS_WINDOWS ".bat"
     :else ""))
-
-(defn- working-dir [params]
-  (.getAbsolutePath (File. (:working_dir params))))
-
-(defn- prepare-env-variables [params]
-  (->> (merge { }
-              {:CIDER_CI_WORKING_DIR (working-dir params)}
-              (:ports params)
-              (:environment-variables params))
-       (filter (fn [[k v]] (not= nil v)))
-       (map (fn [[k v]] [(name k) (str v)]))
-       (map (fn [[k v]] [(string/upper-case k) v]))
-       (into {})))
-
 
 ;### script & wrapper file ####################################################
 
@@ -87,7 +74,7 @@
                                               :script-file-path (script-file-path params)
                                               :working-dir-path (working-dir params)
                                               :exec-user-name (exec-user-name)
-                                              :environment-variables (prepare-env-variables params)
+                                              :environment-variables (:environment-variables params)
                                               })))
 
 (defn- wrapper-file-path [params]
@@ -111,7 +98,7 @@
 (defn- wrapper-command [params]
   (cond
     SystemUtils/IS_OS_UNIX (concat ["sudo" "-u" (exec-user-name)]
-                                   (-> params prepare-env-variables sudo-env-vars)
+                                   (-> params :environment-variables sudo-env-vars)
                                    ["-n" "-i" (:wrapper-file params)])
     SystemUtils/IS_OS_WINDOWS [(-> (get-config) :windows :fsi_path)
                                (:wrapper-file params)]))
@@ -167,8 +154,11 @@
                      {:started_at (time/now)
                       :state "executing"
                       :watchdog (create-watchdog)
-                      :environment-variables (prepare-env-variables @script-atom)
-                      :script-file (create-script-file @script-atom)
+                      :environment-variables (environment-variables/prepare @script-atom)})
+       ; must be done again/twice/separately because the environment-variables must be
+       ; set properly when calling create-wrapper-file and create-wrapper-file
+       (merge-params script-atom
+                     {:script-file (create-script-file @script-atom)
                       :wrapper-file (create-wrapper-file @script-atom)})
        (let [exec-future (exec-sh @script-atom)]
          (merge-params script-atom {:exec-future exec-future})
