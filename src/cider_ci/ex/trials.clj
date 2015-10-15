@@ -102,7 +102,7 @@
            ports)
     (doseq [script-atom (get-scripts-atoms trial)]
       (swap! script-atom #(conj %1 {:ports %2}) ports))
-    ))
+    ports))
 
 (defn put-attachments [trial]
   (let [params-atom (get-params-atom trial)
