@@ -64,11 +64,11 @@
 
 (declare update)
 
-(defn update-submodule [dir path bare-dir]
+(defn update-submodule [dir path bare-dir clone-options]
   (system/exec-with-success-or-throw
     ["git" "submodule" "update" "--init" "--reference" bare-dir path]
     {:dir dir :watchdog 10000})
-  (update (str dir (java.io.File/separator) path)))
+  (update (str dir (java.io.File/separator) path) clone-options))
 
  (defn update [dir clone-options]
    (doseq [[_ submodule] (gitmodules-conf dir)]
@@ -78,7 +78,7 @@
            commit-id (get-commit-id-of-submodule dir path)
            bare-dir (repository/serialized-initialize-or-update-if-required url commit-id)]
        (when (clone-path? path clone-options)
-         (update-submodule dir path bare-dir)))))
+         (update-submodule dir path bare-dir clone-options)))))
 
 ;### Debug #####################################################################
 ;(logging-config/set-logger! :level :debug)
