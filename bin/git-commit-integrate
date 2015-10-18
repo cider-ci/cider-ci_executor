@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -eux
+git add .
+git cmt -m "$1"
+cd ..
+git add executor
+git cmt -m "Integrate executor: $1"
+git psh

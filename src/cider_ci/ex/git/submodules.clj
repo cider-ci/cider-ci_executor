@@ -38,6 +38,30 @@
       (ini/read-ini path :keywordize? true)
       {})))
 
+;### path matcher ##############################################################
+
+(defn- matches-path? [path pattern]
+  (re-find (re-pattern pattern) path))
+
+
+(defn- include-match-includes? [path clone-options]
+  (if-let [include-match (:include-match clone-options)]
+    (matches-path? path include-match)
+    true))
+
+(defn- exclude-match-not-excludes? [path clone-options]
+  (if-let [exclude-match (:exclude-match clone-options)]
+    (not (matches-path? path exclude-match))
+    true))
+
+(defn- clone-path? [path clone-options]
+  (if (= clone-options true)
+    true
+    (and (include-match-includes? path clone-options)
+         (exclude-match-not-excludes? path clone-options))))
+
+;### update ####################################################################
+
 (declare update)
 
 (defn update-submodule [dir path bare-dir]
@@ -46,14 +70,15 @@
     {:dir dir :watchdog 10000})
   (update (str dir (java.io.File/separator) path)))
 
-(defn update [dir]
-  (doseq [[_ submodule] (gitmodules-conf dir)]
-    (logging/debug submodule)
-    (let [url (:url submodule)
-          path (:path submodule)
-          commit-id (get-commit-id-of-submodule dir path)
-          bare-dir (repository/serialized-initialize-or-update-if-required url commit-id)]
-      (update-submodule dir path bare-dir))))
+ (defn update [dir clone-options]
+   (doseq [[_ submodule] (gitmodules-conf dir)]
+     (logging/debug submodule)
+     (let [url (:url submodule)
+           path (:path submodule)
+           commit-id (get-commit-id-of-submodule dir path)
+           bare-dir (repository/serialized-initialize-or-update-if-required url commit-id)]
+       (when (clone-path? path clone-options)
+         (update-submodule dir path bare-dir)))))
 
 ;### Debug #####################################################################
 ;(logging-config/set-logger! :level :debug)

@@ -38,8 +38,8 @@
                           fs/normalized
                           str)]
       (repository/serialized-clone-to-dir repository-url commit-id working-dir)
-      (when (-> params :git-options :submodules :clone)
-        (submodules/update working-dir))
+      (when-let [clone-options (-> params :git-options :submodules :clone)]
+        (submodules/update working-dir clone-options))
       working-dir)))
 
 ;### Debug #####################################################################
