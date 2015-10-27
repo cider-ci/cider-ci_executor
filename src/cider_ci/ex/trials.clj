@@ -69,21 +69,25 @@
 (defn- create-and-insert-working-dir [trial]
   "Creates a working dir (populated with the checked out git repo),
   adds the :working_dir key to the params-atom and sets the corresponding
-  value. Returns the (modified) trial)"
+  value. Returns the (modified) trial."
   (let [params-atom (get-params-atom trial)
         working-dir (git/prepare-and-create-working-dir @params-atom)
         private-dir (str working-dir File/separator ".cider-ci_private")]
     (clj-fs/mkdir private-dir)
+    (swap! params-atom
+           #(assoc %1 :working_dir %2 :private_dir %3)
+           working-dir private-dir))
+  trial)
+
+(defn- change-owner-of-working-dir [trial]
+  (let [working-dir (-> trial get-params-atom deref :working_dir)]
     (cond
       SystemUtils/IS_OS_UNIX (system/exec-with-success-or-throw
                                ["chown" "-R" (exec-user-name) working-dir])
       SystemUtils/IS_OS_WINDOWS (system/exec-with-success-or-throw
                                   ["icacls" working-dir "/grant"
                                    (str (exec-user-name) ":(OI)(CI)F")]))
-    (swap! params-atom
-           #(assoc %1 :working_dir %2 :private_dir %3)
-           working-dir private-dir))
-  trial)
+    trial))
 
 (defn- occupy-and-insert-ports [trial]
   "Occupies free ports according to the :ports directive,
@@ -152,6 +156,7 @@
          (let [ports (occupy-and-insert-ports trial)]
            (try (->> trial
                      render-templates
+                     change-owner-of-working-dir
                      set-and-send-start-params
                      cider-ci.ex.scripts.processor/process
                      put-attachments
