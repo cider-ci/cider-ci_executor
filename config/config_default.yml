@@ -2,6 +2,8 @@ sync_interval_pause_duration: 3 Seconds
 
 trial_retention_duration: 5 Minutes
 
+default_script_timeout: 3 Minutes
+
 nrepl:
   port: 7883
   bind: "127.0.0.1"

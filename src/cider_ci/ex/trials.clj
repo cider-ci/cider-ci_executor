@@ -10,6 +10,7 @@
     [cider-ci.ex.port-provider :as port-provider]
     [cider-ci.ex.reporter :as reporter]
     [cider-ci.ex.result :as result]
+    [cider-ci.ex.scripts :as scripts]
     [cider-ci.ex.scripts.processor]
     [cider-ci.ex.shared :refer :all]
     [cider-ci.ex.trials.helper :refer :all]
@@ -26,6 +27,7 @@
     [drtom.logbug.debug :as debug]
     [drtom.logbug.thrown :as thrown]
     [me.raynes.fs :as clj-fs]
+    [clojure.data.json :as json]
     )
   (:import
     [org.apache.commons.lang3 SystemUtils]
@@ -41,24 +43,13 @@
     (send-patch-via-agent trial (select-keys @params-atom [:state :started_at])))
   trial)
 
-(defn- prepare-script [k script-params trial-params]
-  (atom (conj {}
-              (deep-merge (select-keys trial-params
-                                       [:environment-variables
-                                        :job_id :trial_id
-                                        :working_dir :private_dir])
-                          script-params)
-              (when-not (:name script-params)
-                {:name (name k)})
-              {:state "pending"
-               :key (name k)})))
-
 (defn- prepare-and-insert-scripts [trial]
   (let [params-atom (get-params-atom trial)
         initial-scripts (:scripts @params-atom)
         script-atoms (->> initial-scripts
-                          (map (fn [[k v]]
-                                 [k (prepare-script k v @params-atom)]))
+                          (map (fn [script]
+                                 [(:key script)
+                                  (scripts/prepare-script script @params-atom)]))
                           (into {}))]
     (swap! params-atom #(conj %1 {:scripts %2}) script-atoms))
   trial)

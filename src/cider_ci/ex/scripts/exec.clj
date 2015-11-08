@@ -118,11 +118,7 @@
             "failed")
    :stdout (:out exec-res)
    :stderr (:err exec-res)
-   :error (:error exec-res)
-   :errors (->> (conj []
-                      (:error exec-res)
-                      (:exception exec-res))
-                (filter identity))})
+   :error (:error exec-res)})
 
 (defn- set-script-atom-for-execption [script-atom e]
   (let [e-str (thrown/stringify e)]

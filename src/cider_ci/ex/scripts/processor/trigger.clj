@@ -44,3 +44,7 @@
   (doseq [script-atom (trials/get-scripts-atoms trial)]
     (remove-watch script-atom :trigger)))
 
+;### Debug ####################################################################
+;(logging-config/set-logger! :level :debug)
+;(logging-config/set-logger! :level :info)
+;(debug/debug-ns *ns*)

@@ -27,9 +27,8 @@
 (defn add-error [script-atom error]
   (swap! script-atom
          (fn [params error]
-           (assoc params
-                  :errors
-                  (conj (or (:errors params) []) error)))
+           (assoc params :error
+                  (str (:error params) "\n\n" error)))
          error))
 
 (defn merge-params [script-atom add-params]

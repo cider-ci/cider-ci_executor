@@ -59,7 +59,7 @@
        remove-nil-values
        stringify
        upper-case-keys
-       (#(if (:environment-variables_process-templates params)
+       (#(if (:template-environment-variables params)
            (process-templates %) %))
        (into {})))
 

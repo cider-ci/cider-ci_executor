@@ -124,7 +124,6 @@
               (not (expired? script-atom ds)))
     (Thread/sleep 1000)))
 
-
 (defn terminate [script-atom]
   (cond
     SystemUtils/IS_OS_UNIX (terminate-via-process-tree script-atom)

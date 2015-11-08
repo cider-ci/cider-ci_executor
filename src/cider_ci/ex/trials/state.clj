@@ -9,6 +9,7 @@
     [cider-ci.utils.daemon :as daemon]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
+    [clojure.data.json :as json]
     [clojure.tools.logging :as logging]
     [drtom.logbug.catcher :as catcher]
     [drtom.logbug.debug :as debug]
@@ -23,6 +24,8 @@
 
 (defonce ^:private trials-atom
   (atom {}))
+
+;(spit "tmp/trials-atom.json" (json/write-str @trials-atom))
 
 (defn get-trial [id]
   "Returns the entity stored in the trials-atom if it exists or nil otherwise.

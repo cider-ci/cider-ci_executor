@@ -15,9 +15,14 @@
     (clojure.data.json/-write (time-format/unparse (time-format/formatters :date-time) date-time)
                               out)))
 
-(clojure.core/extend-type Exception clojure.data.json/JSONWriter
-  (-write [ex out]
-    (clojure.data.json/-write (thrown/stringify ex) out)))
+(clojure.core/extend-type org.joda.time.DateTime clojure.data.json/JSONWriter
+  (-write [date-time out]
+    (clojure.data.json/-write (time-format/unparse (time-format/formatters :date-time) date-time)
+                              out)))
+
+(clojure.core/extend-type clojure.lang.Atom clojure.data.json/JSONWriter
+  (-write [obj out]
+    (clojure.data.json/-write (deref obj) out)))
 
 
 (clojure.core/extend-type java.util.concurrent.FutureTask clojure.data.json/JSONWriter
