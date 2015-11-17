@@ -55,7 +55,7 @@
         fun (fn [agent-state]
               (try
                 (catcher/wrap-with-log-error
-                  (let [res (reporter/patch-as-json-with-retries url params)]
+                  (let [res (reporter/patch-with-retries :json url params)]
                     (conj agent-state res)))
                 (catch Throwable e
                   (conj agent-state {:exception e}))))]

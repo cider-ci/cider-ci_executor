@@ -20,27 +20,28 @@
 
 ;### Patch ####################################################################
 
-(defn patch-as-json [url params]
-  (let [body (json/write-str params)
+(defn patch [content-type url content]
+  (let [body (case content-type
+               :json (json/write-str content)
+               :text (str content))
         params  {:insecure? true
-                 :content-type :json
+                 :content-type content-type
                  :accept :json
                  :body body} ]
-    (logging/debug "PATCH: " params)
     (http/patch url params)))
 
-(defn patch-as-json-with-retries
-  ([url params]
-   (patch-as-json-with-retries url params (:max_retries @conf)))
-  ([url params max-retries]
+(defn patch-with-retries
+  ([content-type url content]
+   (patch-with-retries content-type url content (:max_retries @conf)))
+  ([content-type url content max-retries]
    (loop [retry 0]
      (Thread/sleep (* retry retry (:retry_ms_factor @conf)))
      (let [res  (try
-                  (patch-as-json url params)
-                  {:url url :params params :send-status "success"}
+                  (patch content-type url content)
+                  {:url url :content content :send-status "success"}
                   (catch Exception e
                     (logging/warn "failed " (inc retry) " time to PATCH to " url " with error: " e)
-                    {:url url :params params, :send-status "failed" :error e}))]
+                    {:url url :content content, :send-status "failed" :error e}))]
        (if (= (:send-status res) "success")
          res
          (if (>= retry max-retries)

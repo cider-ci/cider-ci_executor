@@ -9,7 +9,6 @@
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
     [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
     [cider-ci.ex.scripts.processor.starter :refer [amend-with-start-when-defaults start-when-fulfilled?]]
-    [clj-commons-exec :as commons-exec]
     [clj-time.core :as time]
     [clojure.tools.logging :as logging]
     [drtom.logbug.catcher :as catcher]
