@@ -23,8 +23,9 @@
 
 
 (defn build-continuous-output-reader
-  [output-handler & {:keys [buffer-size sleep-ms]
-                     :or {buffer-size (* 100 1024) :sleep-ms 1000}}]
+  [output-handler finished-fn
+   & {:keys [buffer-size sleep-ms]
+      :or {buffer-size (* 100 1024) sleep-ms 1000}}]
   (catcher/wrap-with-log-error
     (let [buffer (make-array Byte/TYPE buffer-size)
           is (PipedInputStream. buffer-size)
@@ -33,12 +34,17 @@
         (catcher/wrap-with-suppress-and-log-warn
           (with-open [is is]
             (loop []
-              (let [bytes-read (.read is buffer 0 buffer-size) ]
+              (.flush os)
+              (let [len (if (finished-fn)
+                          buffer-size
+                          (.available is))
+                    bytes-read (.read is buffer 0 len)]
                 (when (not= bytes-read -1)
-                  (let [output (String. buffer 0 bytes-read charset)]
-                    (output-handler output)
-                    (Thread/sleep 1000)
-                    (recur))))))))
+                  (when (< 0 bytes-read)
+                    (let [output (String. buffer 0 bytes-read charset)]
+                      (output-handler output)))
+                  (Thread/sleep sleep-ms)
+                  (recur)))))))
       os)))
 
 
@@ -46,4 +52,4 @@
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
-;(debug/debug-ns *ns*)
+(debug/debug-ns *ns*)

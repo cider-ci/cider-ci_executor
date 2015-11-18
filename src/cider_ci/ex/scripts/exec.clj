@@ -8,6 +8,7 @@
     [org.apache.commons.lang3 SystemUtils]
     )
   (:require
+
     [cider-ci.ex.environment-variables :as environment-variables]
     [cider-ci.ex.scripts.exec.shared :refer :all]
     [cider-ci.ex.scripts.exec.terminator :refer [terminate create-watchdog pid-file-path]]
@@ -15,6 +16,7 @@
     [cider-ci.ex.scripts.script :as script]
     [cider-ci.ex.shared :refer :all]
     [cider-ci.ex.utils :as utils]
+    [cider-ci.ex.utils.state :refer [pending? executing-or-waiting? executing? finished?]]
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.fs :as ci-fs]
     [clj-commons-exec :as commons-exec]
@@ -22,7 +24,6 @@
     [clojure.set :refer [difference union]]
     [clojure.string :as string :refer [split trim]]
     [me.raynes.fs :as clj-fs]
-
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
     [drtom.logbug.debug :as debug]
@@ -108,7 +109,8 @@
 
 (defn build-continuous-os-patcher [field-name script-atom]
   (utils/build-continuous-output-reader
-    #(scripts.patch/send-field-patch-via-agent script-atom field-name %)))
+    #(scripts.patch/send-field-patch-via-agent script-atom field-name %)
+    #(finished? script-atom)))
 
 (defn exec-sh [script-atom]
   (let [params @script-atom
