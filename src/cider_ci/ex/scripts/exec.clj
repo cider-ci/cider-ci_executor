@@ -19,15 +19,19 @@
     [cider-ci.ex.utils.state :refer [pending? executing-or-waiting? executing? finished?]]
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.fs :as ci-fs]
+
     [clj-commons-exec :as commons-exec]
+    [clj-shellwords.core :refer [shell-escape]]
     [clj-time.core :as time]
     [clojure.set :refer [difference union]]
     [clojure.string :as string :refer [split trim]]
     [me.raynes.fs :as clj-fs]
+
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
     [drtom.logbug.debug :as debug]
     [drtom.logbug.thrown :as thrown]
+
     ))
 
 ;##############################################################################
@@ -62,7 +66,7 @@
 (defn- sudo-env-vars [vars]
   (->> vars
        (map (fn [[k v]]
-              (str k "=" v )))))
+              (str (shell-escape k) "=" (shell-escape v))))))
 
 ;### wrapper ##################################################################
 
@@ -116,6 +120,9 @@
   (let [params @script-atom
         command (wrapper-command params)
         watchdog (:watchdog params)]
+    (swap! script-atom
+           (fn [params command]
+             (assoc params :command command)) command)
     (commons-exec/sh
       command
       {:watchdog watchdog
