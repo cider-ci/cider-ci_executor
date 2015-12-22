@@ -11,8 +11,8 @@
     [cider-ci.ex.scripts.processor.starter :refer [amend-with-start-when-defaults start-when-fulfilled?]]
     [clj-time.core :as time]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.catcher :as catcher]
-    [drtom.logbug.debug :as debug]
+    [logbug.catcher :as catcher]
+    [logbug.debug :as debug]
     ))
 
 (def this-ns *ns*)

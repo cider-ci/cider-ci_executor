@@ -14,7 +14,7 @@
     [clojure.set :refer [union]]
     [clojure.string :refer [blank? lower-case split trim]]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.debug :as debug]
+    [logbug.debug :as debug]
     ))
 
 (defonce ^:private traits (atom (sorted-set)))

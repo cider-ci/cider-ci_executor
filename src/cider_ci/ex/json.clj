@@ -7,7 +7,7 @@
     [clojure.data.json]
     [clj-time.core :as time]
     [clj-time.format :as time-format]
-    [drtom.logbug.thrown :as thrown]
+    [logbug.thrown :as thrown]
     ))
 
 (clojure.core/extend-type org.joda.time.DateTime clojure.data.json/JSONWriter

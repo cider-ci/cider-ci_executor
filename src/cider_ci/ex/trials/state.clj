@@ -11,9 +11,9 @@
     [clj-time.core :as time]
     [clojure.data.json :as json]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.catcher :as catcher]
-    [drtom.logbug.debug :as debug]
-    [drtom.logbug.thrown :as thrown]
+    [logbug.catcher :as catcher]
+    [logbug.debug :as debug]
+    [logbug.thrown :as thrown]
     )
   (:import
     [java.io File]

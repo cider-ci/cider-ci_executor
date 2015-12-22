@@ -11,24 +11,36 @@
     [cider-ci.ex.git.submodules :as submodules]
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.http :refer [build-server-url]]
-    [clj-logging-config.log4j :as logging-config]
+
     [clj-time.core :as time]
     [clj-uuid]
     [clojure.string :as string :refer [blank?]]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.debug :as debug]
-    [drtom.logbug.thrown :as thrown]
     [me.raynes.fs :as fs]
+
+    [clj-logging-config.log4j :as logging-config]
+    [logbug.debug :as debug]
+    [logbug.thrown :as thrown]
     )
   )
+
+
+(defn- prepare-git-proxies [git-proxies]
+  (->> git-proxies
+       (map (fn [[commit-id path]]
+              [(name commit-id) (build-server-url path)]))
+       (into {})))
+
 
 ;### Core Git #################################################################
 
 (defn prepare-and-create-working-dir [params]
   (let [working-dir-id (:trial_id params)
         commit-id (:git_commit_id params)
-        repository-url (or (:git_url params)
-                           (build-server-url (:git_path params)))]
+        git-proxies (:git-proxies params)
+        repository-url (:git_url params)
+        proxy-url ((-> commit-id str keyword) git-proxies)
+        branch-name (:git_branch_name params)]
     (assert (not (blank? working-dir-id)))
     (assert (not (blank? commit-id)))
     (assert (not (blank? repository-url)))
@@ -37,9 +49,9 @@
                           fs/absolute
                           fs/normalized
                           str)]
-      (repository/serialized-clone-to-dir repository-url commit-id working-dir)
+      (repository/serialized-clone-to-dir repository-url proxy-url commit-id branch-name working-dir)
       (when-let [clone-options (-> params :git-options :submodules :clone)]
-        (submodules/update working-dir clone-options))
+        (submodules/update working-dir clone-options git-proxies))
       working-dir)))
 
 ;### Debug #####################################################################

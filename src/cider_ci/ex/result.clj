@@ -9,8 +9,8 @@
     [org.apache.commons.exec ExecuteWatchdog]
     )
   (:require
-    [drtom.logbug.debug :as debug]
-    [drtom.logbug.catcher :as catcher]
+    [logbug.debug :as debug]
+    [logbug.catcher :as catcher]
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
     [me.raynes.fs :as fs]

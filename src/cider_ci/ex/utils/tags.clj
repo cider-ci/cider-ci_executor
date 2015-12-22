@@ -12,7 +12,7 @@
     [clojure.string :refer [blank? lower-case split trim]]
     [clojure.tools.logging :as logging]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.debug :as debug]
+    [logbug.debug :as debug]
     [me.raynes.fs :as clj-fs]
     ))
 ; TODO change ansible inventory !

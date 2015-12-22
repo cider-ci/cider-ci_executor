@@ -7,7 +7,7 @@
     [java.net ServerSocket DatagramSocket InetAddress]
     )
   (:require
-    [drtom.logbug.debug :as debug]
+    [logbug.debug :as debug]
     [clj-logging-config.log4j :as  logging-config]
     [clojure.pprint :as pprint]
     [clojure.stacktrace :as stacktrace]

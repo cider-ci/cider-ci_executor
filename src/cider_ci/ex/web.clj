@@ -12,18 +12,20 @@
     [cider-ci.ex.trials.state :as trials.state]
     [cider-ci.utils.http :as http]
     [cider-ci.utils.routing :as routing]
-    [clj-logging-config.log4j :as logging-config]
+
     [clj-time.core :as time]
     [clojure.data :as data]
     [clojure.data.json :as json]
-    [clojure.stacktrace :as stacktrace]
-    [clojure.tools.logging :as logging]
     [compojure.core :as cpj]
     [compojure.handler]
-    [drtom.logbug.debug :as debug]
-    [drtom.logbug.ring :refer [wrap-handler-with-logging]]
     [ring.adapter.jetty :as jetty]
     [ring.middleware.json]
+
+    [clj-logging-config.log4j :as logging-config]
+    [clojure.tools.logging :as logging]
+    [logbug.catcher :as catcher :refer [catch*]]
+    [logbug.debug :as debug :refer [÷> ÷>>]]
+    [logbug.ring :refer [wrap-handler-with-logging]]
     ))
 
 
@@ -42,16 +44,13 @@
 
 (defn execute [request]
   (logging/info 'execute (json/write-str request))
-  (try
-    (let [trial-parameters  (clojure.walk/keywordize-keys (:json-params request))]
-      (when-not (:trial_id trial-parameters) (throw (IllegalStateException. ":trial_id parameter must be present")))
-      (when-not (:patch_path trial-parameters) (throw (IllegalStateException. ":patch_path parameter must be present")))
-      (accepted-repositories/assert-satisfied (:git_url trial-parameters))
-      (future (trials/execute trial-parameters))
-      {:status 204})
-    (catch Exception e
-      (logging/error request (with-out-str (stacktrace/print-stack-trace e)))
-      {:status 422 :body (str e)})))
+  (catch* :error (fn [e] {:status 422 :body (str e)})
+          (let [trial-parameters  (clojure.walk/keywordize-keys (:json-params request))]
+            (when-not (:trial_id trial-parameters) (throw (IllegalStateException. ":trial_id parameter must be present")))
+            (when-not (:patch_path trial-parameters) (throw (IllegalStateException. ":patch_path parameter must be present")))
+            (accepted-repositories/assert-satisfied (:git_url trial-parameters))
+            (future (trials/execute trial-parameters))
+            {:status 204})))
 
 (defn get-trials []
   (let [trials (trials.state/get-trials-properties)]
@@ -80,18 +79,13 @@
 ;##### handler and routing ##############################################################
 
 (defn build-main-handler [context]
-  ( -> (compojure.handler/api (build-routes context))
-       (wrap-handler-with-logging 'cider-ci.ex.web)
-       routing/wrap-shutdown
-       (wrap-handler-with-logging 'cider-ci.ex.web)
-       (ring.middleware.json/wrap-json-params)
-       (wrap-handler-with-logging 'cider-ci.ex.web)
-       (auth/wrap-authenticate-and-authorize-service)
-       (wrap-handler-with-logging 'cider-ci.ex.web)
-       (http-basic/wrap {:service true}) ; TODO, workaround, only check pw used both ways
-       (wrap-handler-with-logging 'cider-ci.ex.web)
-       (routing/wrap-log-exception)
-       ))
+  (÷> wrap-handler-with-logging
+      (compojure.handler/api (build-routes context))
+      routing/wrap-shutdown
+      (ring.middleware.json/wrap-json-params)
+      (auth/wrap-authenticate-and-authorize-service)
+      (http-basic/wrap {:service true}) ; TODO, workaround, only check pw used both ways
+      (routing/wrap-log-exception)))
 
 ;### Server ###################################################################
 ;### TODO replaces this with the server from clj-utils

@@ -3,10 +3,11 @@
 ; See the "LICENSE.txt" file provided with this software.
 
 (ns cider-ci.ex.git.submodules
+  (:refer-clojure :exclude [update])
   (:require
     [cider-ci.ex.git.repository :as repository]
     [cider-ci.utils.config :as config :refer [get-config]]
-    [drtom.logbug.debug :as debug]
+    [logbug.debug :as debug]
     [cider-ci.utils.system :as system]
     [clj-logging-config.log4j :as logging-config]
     [clojure-ini.core :as ini]
@@ -64,21 +65,25 @@
 
 (declare update)
 
-(defn update-submodule [dir path bare-dir clone-options]
-  (system/exec-with-success-or-throw
-    ["git" "submodule" "update" "--init" "--reference" bare-dir path]
-    {:dir dir :watchdog 10000})
-  (update (str dir (java.io.File/separator) path) clone-options))
+(defn update-submodule [dir path bare-dir clone-options git-proxies]
+  (let [submodule-dir (str dir (java.io.File/separator) path)]
+    ;(system/exec-with-success-or-throw
+    ;  ["git" "submodule" "update" "--no-fetch" "--init" "--reference" bare-dir path]
+    ;  {:dir dir :watchdog 10000})
+    (update submodule-dir clone-options git-proxies)))
 
- (defn update [dir clone-options]
-   (doseq [[_ submodule] (gitmodules-conf dir)]
-     (logging/debug submodule)
-     (let [url (:url submodule)
-           path (:path submodule)
-           commit-id (get-commit-id-of-submodule dir path)
-           bare-dir (repository/serialized-initialize-or-update-if-required url commit-id)]
-       (when (clone-path? path clone-options)
-         (update-submodule dir path bare-dir clone-options)))))
+(defn update [dir clone-options git-proxies]
+  (doseq [[_ submodule] (gitmodules-conf dir)]
+    (logging/debug 'SUBMODULE submodule)
+    (let [path (:path submodule)]
+      (when (clone-path? path clone-options)
+        (let [submodule-dir (str dir (java.io.File/separator) path)
+              url (:url submodule)
+              commit-id (get-commit-id-of-submodule dir path)
+              proxy-url ((-> commit-id str keyword) git-proxies)
+              bare-dir (repository/serialized-initialize-or-update-if-required url proxy-url commit-id)]
+          (repository/serialized-clone-to-dir url proxy-url commit-id nil submodule-dir)
+          (update-submodule dir path bare-dir clone-options git-proxies))))))
 
 ;### Debug #####################################################################
 ;(logging-config/set-logger! :level :debug)

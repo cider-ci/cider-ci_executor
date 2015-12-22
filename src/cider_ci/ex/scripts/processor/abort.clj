@@ -7,8 +7,8 @@
     [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
     [clj-time.core :as time]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.catcher :as catcher]
-    [drtom.logbug.debug :as debug]
+    [logbug.catcher :as catcher]
+    [logbug.debug :as debug]
     ))
 
 

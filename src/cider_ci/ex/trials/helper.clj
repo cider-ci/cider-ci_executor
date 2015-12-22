@@ -8,8 +8,8 @@
     [cider-ci.utils.http :refer [build-server-url]]
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.debug :as debug]
-    [drtom.logbug.catcher :as catcher]
+    [logbug.debug :as debug]
+    [logbug.catcher :as catcher]
     ))
 
 (def ^:private terminal-states #{"passed" "failed" "aborted" "skipped"})

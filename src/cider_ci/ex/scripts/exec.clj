@@ -29,8 +29,8 @@
 
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.debug :as debug]
-    [drtom.logbug.thrown :as thrown]
+    [logbug.debug :as debug]
+    [logbug.thrown :as thrown]
 
     ))
 

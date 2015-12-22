@@ -18,8 +18,8 @@
     [clojure.set :refer [difference union]]
     [clojure.string :as string :refer [split trim]]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.debug :as debug]
-    [drtom.logbug.thrown :as thrown]
+    [logbug.debug :as debug]
+    [logbug.thrown :as thrown]
     ))
 
 ;### termination ##############################################################

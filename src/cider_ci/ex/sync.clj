@@ -18,8 +18,8 @@
     [clojure.data.json :as json]
     [clojure.java.io :as io]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.catcher :as catcher]
-    [drtom.logbug.debug :as debug]
+    [logbug.catcher :as catcher]
+    [logbug.debug :as debug]
     ))
 
 (defn- unfinished-trials-count []

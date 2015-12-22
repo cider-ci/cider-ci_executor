@@ -11,8 +11,8 @@
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.catcher :as catcher]
-    [drtom.logbug.debug :as debug]
+    [logbug.catcher :as catcher]
+    [logbug.debug :as debug]
     ))
 
 (defn- eval-patch [trial old-state new-state]

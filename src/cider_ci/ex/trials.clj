@@ -23,9 +23,9 @@
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.catcher :as catcher]
-    [drtom.logbug.debug :as debug]
-    [drtom.logbug.thrown :as thrown]
+    [logbug.catcher :as catcher]
+    [logbug.debug :as debug]
+    [logbug.thrown :as thrown]
     [me.raynes.fs :as clj-fs]
     [clojure.data.json :as json]
     )

@@ -8,9 +8,9 @@
     )
   (:require
     [cider-ci.utils.config :as config :refer [get-config]]
-    [drtom.logbug.debug :as debug]
+    [logbug.debug :as debug]
     [cider-ci.utils.fs :as ci-fs]
-    [drtom.logbug.thrown :as thrown]
+    [logbug.thrown :as thrown]
     [cider-ci.utils.http :refer [build-server-url]]
     [cider-ci.utils.system :as system]
     [clj-logging-config.log4j :as logging-config]
@@ -53,33 +53,33 @@
 
 ;### Core Git #################################################################
 
-(defn- create-mirror-clone [url path]
-  (system/exec ["rm" "-rf" path])
+(defn- git-fetch [path repository-url]
   (system/exec-with-success-or-throw
-    ["git" "clone" "--mirror" url path]
-    {:add-env {"GIT_SSL_NO_VERIFY" "1"}
+    ["git" "fetch" "--force" "--tags" "--prune" repository-url "+*:*"]
+    {:dir path
+     :add-env {"GIT_SSL_NO_VERIFY" "1"}
      :watchdog (* 60 60 1000)}))
+
+(defn- initialize-repo [repository-url proxy-url path]
+  (system/exec ["rm" "-rf" path])
+  (system/exec-with-success-or-throw ["git" "init" "--bare" path])
+  (git-fetch path (or proxy-url repository-url))
+  ;(system/exec-with-success-or-throw ["remote" "add" "origin" repository-url]{:dir path})
+  )
 
 (defn- repository-includes-commit? [path commit-id]
   "Returns false if there is an exeception!"
   (and (system/exec-with-success?  ["git" "cat-file" "-t" commit-id] {:dir path})
        (system/exec-with-success?  ["git" "ls-tree" commit-id] {:dir path})))
 
-(defn- update [path repository-url]
-  (system/exec-with-success-or-throw
-    ["git" "fetch" "--force" "--tags" "--prune" repository-url "+*:*"]
-    {:dir path
-     :add-env {"GIT_SSL_NO_VERIFY" "1"}
-     :watchdog (* 3 60 1000)}))
-
-(defn- initialize-or-update-if-required [agent-state repository-url commit-id]
+(defn- initialize-or-update-if-required [agent-state repository-url proxy-url commit-id]
   (let [repository-path (:repository-path agent-state)]
     (when-not (system/exec-with-success?
                 ["git" "rev-parse" "--resolve-git-dir" repository-path])
-      (create-mirror-clone repository-url repository-path))
+      (initialize-repo repository-url proxy-url repository-path))
     (loop [update-count 1]
       (when-not (repository-includes-commit? repository-path commit-id)
-        (update repository-path repository-url)
+        (git-fetch repository-path (or proxy-url repository-url))
         (when-not (repository-includes-commit? repository-path commit-id)
           (when (<= update-count 3)
             (Thread/sleep 250)
@@ -91,7 +91,7 @@
 
 (defn serialized-initialize-or-update-if-required
   "Returns a absolute path to bare clone which is guaranteed to contain the commit-id."
-  [repository-url commit-id]
+  [repository-url proxy-url commit-id]
   (if-not (and repository-url commit-id)
     (throw (java.lang.IllegalArgumentException. "serialized-initialize-or-update-if-required")))
   (-> (let [repository-agent (get-or-create-repository-agent repository-url)
@@ -100,7 +100,7 @@
                   (try
                     (reset! res-atom
                             (dissoc (initialize-or-update-if-required
-                                      agent-state repository-url commit-id)
+                                      agent-state repository-url proxy-url commit-id)
                                     :exception))
                     (catch Exception e
                       (logging/warn (thrown/stringify e))
@@ -116,25 +116,28 @@
       fs/normalized
       str))
 
-
-(defn- clone-to-dir [repository-path commit-id dir]
-  (system/exec-with-success-or-throw
-    ["git" "clone" "--shared" repository-path dir]
-    {:watchdog (* 60 1000)})
-  (system/exec-with-success-or-throw
-    ["git" "checkout" commit-id]
-    {:dir dir})
-  true)
+(defn- clone-to-dir [repository-path commit-id branch-name dir]
+  (let [cmd (concat
+              ["git" "clone" "--shared"]
+              (if (clojure.string/blank? branch-name)
+                []
+                ["--branch" branch-name])
+              [repository-path dir])]
+    (system/exec-with-success-or-throw
+      cmd {:watchdog (* 60 1000)})
+    (system/exec-with-success-or-throw
+      ["git" "checkout" commit-id] {:dir dir})
+    true))
 
 (defn serialized-clone-to-dir
   "Clones creates a shallow clone in working-dir by referencing a local clone.
-  Throws an exception if creating of the clone failed."
-  [repository-url commit-id working-dir]
-  (let [repository-path (serialized-initialize-or-update-if-required repository-url commit-id)
+  Throws an exception if creating the clone failed."
+  [repository-url proxy-url commit-id branch-name working-dir]
+  (let [repository-path (serialized-initialize-or-update-if-required repository-url proxy-url commit-id)
         repository-agent (get-or-create-repository-agent repository-url)
         res-atom (atom nil)
         fun (fn [agent-state]
-              (try (clone-to-dir repository-path commit-id  working-dir)
+              (try (clone-to-dir repository-path commit-id branch-name working-dir)
                    (reset! res-atom
                            (-> agent-state
                                (dissoc :exception)
@@ -152,4 +155,4 @@
 ;### Debug #####################################################################
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
-;(debug/debug-ns *ns*)
+(debug/debug-ns *ns*)

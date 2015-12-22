@@ -7,9 +7,9 @@
     [cider-ci.utils.config :as config :refer [get-config]]
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.catcher :as catcher]
-    [drtom.logbug.debug :as debug]
-    [drtom.logbug.thrown :as thrown]
+    [logbug.catcher :as catcher]
+    [logbug.debug :as debug]
+    [logbug.thrown :as thrown]
     ))
 
 ;##############################################################################

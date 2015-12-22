@@ -6,7 +6,7 @@
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
     [selmer.parser]
-    [drtom.logbug.debug :as debug]
+    [logbug.debug :as debug]
     [cider-ci.ex.scripts.exec.shared :refer :all]
     ))
 

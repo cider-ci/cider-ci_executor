@@ -4,9 +4,9 @@
 
 (ns cider-ci.ex.attachments
   (:require
-    [drtom.logbug.debug :as debug]
+    [logbug.debug :as debug]
     [cider-ci.utils.http :as http]
-    [drtom.logbug.catcher :as catcher]
+    [logbug.catcher :as catcher]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clj-time.format :as time-format]

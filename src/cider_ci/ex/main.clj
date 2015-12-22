@@ -22,9 +22,9 @@
     [cider-ci.utils.http :as http]
     [cider-ci.utils.nrepl :as nrepl]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.catcher :as catcher]
-    [drtom.logbug.debug :as debug]
-    [drtom.logbug.thrown]
+    [logbug.catcher :as catcher]
+    [logbug.debug :as debug]
+    [logbug.thrown]
     [me.raynes.fs :as clj-fs]
     ))
 
@@ -69,7 +69,7 @@
 (defn -main [& args]
   (catcher/wrap-with-log-error
     (log-env)
-    (drtom.logbug.thrown/reset-ns-filter-regex #".*cider.ci.*")
+    (logbug.thrown/reset-ns-filter-regex #".*cider.ci.*")
     (logging/info "starting -main " args)
     (config/initialize)
     (initialize)

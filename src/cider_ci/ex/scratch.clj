@@ -4,12 +4,12 @@
 
 (ns cider-ci.ex.scratch
   (:require
-    [drtom.logbug.catcher :as catcher]
+    [logbug.catcher :as catcher]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clojure.string :as string]
     [clojure.tools.logging :as logging]
-    [drtom.logbug.debug :as debug]
+    [logbug.debug :as debug]
     [cider-ci.ex.trials :as trials]
     [clj-commons-exec :as commons-exec]
     [clojure.java.io :as io]
