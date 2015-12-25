@@ -100,14 +100,17 @@
     ports))
 
 (defn put-attachments [trial]
-  (let [params-atom (get-params-atom trial)
-        working-dir (get-working-dir trial)]
-    (attachments/put working-dir
-                     (:trial-attachments @params-atom)
-                     (build-server-url (:trial-attachments-path @params-atom)))
-    (attachments/put working-dir
-                     (:tree-attachments @params-atom)
-                     (build-server-url (:tree-attachments-path @params-atom))))
+
+  (attachments/find-and-upload trial)
+
+;  (let [params-atom (get-params-atom trial)
+;        working-dir (get-working-dir trial)]
+;    (attachments/put working-dir
+;                     (:trial-attachments @params-atom)
+;                     (build-server-url (:trial-attachments-path @params-atom)))
+;    (attachments/put working-dir
+;                     (:tree-attachments @params-atom)
+;                     (build-server-url (:tree-attachments-path @params-atom))))
   trial)
 
 (defn set-final-state [trial]
