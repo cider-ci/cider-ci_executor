@@ -8,8 +8,8 @@
   :license {:name "GNU Affero General Public License"
             :url "http://www.gnu.org/licenses/agpl-3.0.html"}
   :dependencies [
-                 [cider-ci/clj-auth "3.1.0"]
-                 [cider-ci/clj-utils "3.3.2"]
+                 [cider-ci/clj-auth "4.0.1"]
+                 [cider-ci/clj-utils "4.0.6"]
 
                  [camel-snake-kebab "0.3.2"]
                  [clj-shellwords "1.0.1"]

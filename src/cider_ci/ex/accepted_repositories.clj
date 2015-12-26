@@ -5,7 +5,6 @@
 (ns cider-ci.ex.accepted-repositories
   (:require
     [cider-ci.ex.utils.tags :refer :all]
-    [cider-ci.utils.config-loader :as config-loader]
     [cider-ci.utils.daemon :as daemon :refer [defdaemon]]
     [cider-ci.utils.fs :refer :all]
     [cider-ci.utils.map :refer [deep-merge]]

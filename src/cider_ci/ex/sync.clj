@@ -15,11 +15,15 @@
     [cider-ci.utils.daemon :refer [defdaemon]]
     [cider-ci.utils.http :as http :refer [build-service-url]]
     [cider-ci.utils.map :refer [deep-merge]]
+
     [clojure.data.json :as json]
     [clojure.java.io :as io]
     [clojure.tools.logging :as logging]
-    [logbug.catcher :as catcher]
-    [logbug.debug :as debug]
+
+    [clj-logging-config.log4j :as logging-config]
+    [clojure.tools.logging :as logging]
+    [logbug.catcher :as catcher :refer [catch*]]
+    [logbug.ring :refer [wrap-handler-with-logging]]
     ))
 
 (defn- unfinished-trials-count []

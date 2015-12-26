@@ -6,7 +6,7 @@
   (:require
     [cider-ci.ex.trials.helper :refer :all]
     [cider-ci.utils.config :as config :refer [get-config parse-config-duration-to-seconds]]
-    [cider-ci.utils.daemon :as daemon]
+    [cider-ci.utils.daemon :as daemon :refer [defdaemon]]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clojure.data.json :as json]
@@ -85,7 +85,7 @@
              (dissoc current (:trial_id trial)))
            trial)))
 
-(daemon/define "sweep" start-sweep stop-sweep 10 (sweep))
+(defdaemon "sweep" 10 (sweep))
 
 (defn initialize []
   (start-sweep))

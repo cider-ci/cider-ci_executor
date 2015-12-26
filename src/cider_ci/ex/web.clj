@@ -4,8 +4,8 @@
 
 (ns cider-ci.ex.web
   (:require
-    [cider-ci.auth.core :as auth]
     [cider-ci.ex.accepted-repositories :as accepted-repositories]
+    [cider-ci.auth.authorize :as authorize]
     [cider-ci.auth.http-basic :as http-basic]
     [cider-ci.ex.certificate :as certificate]
     [cider-ci.ex.trials  :as trials]
@@ -83,8 +83,8 @@
       (compojure.handler/api (build-routes context))
       routing/wrap-shutdown
       (ring.middleware.json/wrap-json-params)
-      (auth/wrap-authenticate-and-authorize-service)
-      (http-basic/wrap {:service true}) ; TODO, workaround, only check pw used both ways
+      (authorize/wrap-require! {:service true})
+      (http-basic/wrap {:service true})
       (routing/wrap-log-exception)))
 
 ;### Server ###################################################################
@@ -115,7 +115,6 @@
 ;### Initialize ###############################################################
 (defn initialize [new-conf]
   (reset! conf new-conf)
-  (http-basic/initialize (select-keys @conf [:basic_auth]))
   (start-server))
 
 

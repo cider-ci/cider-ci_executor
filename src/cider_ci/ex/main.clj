@@ -18,7 +18,6 @@
     [cider-ci.ex.trials.working-dir-sweeper]
     [cider-ci.ex.web :as web]
     [cider-ci.utils.config :as config :refer [get-config merge-in-config]]
-    [cider-ci.utils.config-loader :as config-loader]
     [cider-ci.utils.http :as http]
     [cider-ci.utils.nrepl :as nrepl]
     [clojure.tools.logging :as logging]

@@ -23,25 +23,20 @@
   (:import
     [java.io File]
     [java.nio.file Files FileSystems Path Paths]
-    )
-  )
+    ))
 
 (defn- put-file [file working-dir base-url content-type]
   (catcher/wrap-with-log-error
     (let [url (str base-url file)]
       (logging/debug "putting attachment"
                      {:file file :url url})
-      (http/put url {:body (clojure.java.io/file (str working-dir "/" file))
-                     :content-type content-type})
-      )))
-
-
-;### path #####################################################################
+      (http/put url {:body (clojure.java.io/file
+                             (str working-dir "/" file))
+                     :content-type content-type}))))
 
 (defn nio-path [s]
   (.getPath (FileSystems/getDefault)
             s (make-array String 0)))
-
 
 (defn put-attachments [dir-str in-ex-matcher trial]
   (let [dir-path (-> dir-str nio-path)]
@@ -50,8 +45,7 @@
             (filter #(Files/isRegularFile % (make-array java.nio.file.LinkOption 0)))
             (map #(.relativize dir-path %))
             (map #(.toString %))
-            (filter #(in-ex/passes? % in-ex-matcher))
-            )))
+            (filter #(in-ex/passes? % in-ex-matcher)))))
 
 (defn- matching-paths-seq [dir-str in-ex-matcher]
   (let [dir-path (-> dir-str nio-path)]
@@ -60,33 +54,26 @@
             (filter #(Files/isRegularFile % (make-array java.nio.file.LinkOption 0)))
             (map #(.relativize dir-path %))
             (map #(.toString %))
-            (filter #(in-ex/passes? % in-ex-matcher))
-            )))
+            (filter #(in-ex/passes? % in-ex-matcher)))))
 
-
-;(matching-paths-seq (System/getProperty "user.dir") {:include-match "log$"} )
-
+(defn- kind-property [kind postfix params]
+  ((keyword (str kind postfix)) params))
 
 (defn find-and-upload [trial]
   (let [params (-> trial get-params-atom deref)
         working-dir (get-working-dir trial)]
     (doseq [kind ["tree" "trial"]]
-      (let [base-url (build-server-url ((keyword (str kind "-attachments-path")) params))]
-        (when-let [matchers ((keyword (str kind "-attachments")) params)]
-          (logging/info {:matchers matchers})
+      (let [base-url (build-server-url
+                       (kind-property kind "-attachments-path" params))]
+        (when-let [matchers (kind-property kind "-attachments" params)]
           (doseq [matcher (convert-to-array matchers)]
             (let [content-type (:content-type matcher)]
-              (logging/info {:matcher matcher})
               (when-not (:include-match matcher)
                 (throw (ex-info (str "An attachment matcher must include "
-                                     "the 'include-match' directive'.") {:matcher matcher})))
+                                     "the 'include-match' directive'.")
+                                {:matcher matcher})))
               (doseq [path-str (matching-paths-seq working-dir matcher)]
-                (logging/info "Attaching" path-str "for"  kind)
-                (put-file path-str working-dir base-url content-type)
-                ))))))))
-
-;(debug/re-apply-last-argument #'find-and-upload)
-
+                (put-file path-str working-dir base-url content-type)))))))))
 
 ;### Debug ####################################################################
 ;(debug/debug-ns *ns*)

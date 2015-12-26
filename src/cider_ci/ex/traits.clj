@@ -6,8 +6,7 @@
 (ns cider-ci.ex.traits
   (:require
     [cider-ci.ex.utils.tags :refer :all]
-    [cider-ci.utils.config-loader :as config-loader]
-    [cider-ci.utils.daemon :as daemon]
+    [cider-ci.utils.daemon :as daemon :refer [defdaemon]]
     [cider-ci.utils.fs :refer :all]
     [cider-ci.utils.map :refer [deep-merge]]
     [clojure.java.io :as io]
@@ -33,9 +32,7 @@
        (read-tags-from-yaml-files)
        set-traits))
 
-(daemon/define "reload-traits"
-  start-read-traits stop-read-traits 1
-  (read-traits))
+(defdaemon "read-traits" 1 (read-traits))
 
 (defn initialize []
   (start-read-traits))
