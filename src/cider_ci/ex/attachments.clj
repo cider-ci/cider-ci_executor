@@ -25,14 +25,16 @@
     [java.nio.file Files FileSystems Path Paths]
     ))
 
-(defn- put-file [file working-dir base-url content-type]
+(defn- put-file [file working-dir base-url content-type token]
   (catcher/wrap-with-log-error
     (let [url (str base-url file)]
       (logging/debug "putting attachment"
                      {:file file :url url})
       (http/put url {:body (clojure.java.io/file
                              (str working-dir "/" file))
-                     :content-type content-type}))))
+                     :content-type content-type
+                     :headers {:trial-token token}
+                     }))))
 
 (defn nio-path [s]
   (.getPath (FileSystems/getDefault)
@@ -61,7 +63,8 @@
 
 (defn find-and-upload [trial]
   (let [params (-> trial get-params-atom deref)
-        working-dir (get-working-dir trial)]
+        working-dir (get-working-dir trial)
+        token (:token params)]
     (doseq [kind ["tree" "trial"]]
       (let [base-url (build-server-url
                        (kind-property kind "-attachments-path" params))]
@@ -73,10 +76,13 @@
                                      "the 'include-match' directive'.")
                                 {:matcher matcher})))
               (doseq [path-str (matching-paths-seq working-dir matcher)]
-                (put-file path-str working-dir base-url content-type)))))))))
+                (catcher/wrap-with-suppress-and-log-warn
+                  (put-file path-str working-dir base-url content-type token)
+                  )))))))))
 
 ;### Debug ####################################################################
 ;(debug/debug-ns *ns*)
+;(debug/wrap-with-log-debug #'put-file)
 ;(logging-config/set-logger! :level :info)
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
