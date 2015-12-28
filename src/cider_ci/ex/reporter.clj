@@ -1,59 +1,77 @@
 (ns cider-ci.ex.reporter
   (:require
+    [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.ex.json]
-    [logbug.debug :as debug]
     [cider-ci.utils.http :as http]
     [cider-ci.utils.map :refer [deep-merge]]
-    [clj-logging-config.log4j :as logging-config]
+    [cider-ci.utils.duration :as duration]
+
     [clj-time.core :as time]
     [clj-time.format :as time-format]
     [clojure.data.json :as json]
     [clojure.string :as string]
+
     [clojure.tools.logging :as logging]
-    [clojure.walk]
+    [logbug.catcher :as catcher]
+    [logbug.thrown :as thrown]
+    [clj-logging-config.log4j :as logging-config]
+    [logbug.debug :as debug]
     ))
 
-(defonce conf (atom {:max_retries 10
-                     :retry_ms_factor 3000
-                     }))
+
+;### Read config ##############################################################
+
+(defn- validate-max-retries [v]
+  (if-not (and (number? v) (<= 0 v) (> 25 v))
+    (throw (ex-info "Max retries value does not meet constraints"  {:value v}))
+    v))
+
+(defn- max-retries []
+  (catcher/catch*
+    :warn 10
+    (-> (get-config)
+        :reporter
+        :max-retries
+        validate-max-retries)))
+
+(defn- validate-pause-duration [p]
+  (if-not (and (number? p) (< 0 p) (> 1000 p))
+    (throw (ex-info "Pause duration doesn't meet constraints"  {:value p}))
+    p))
+
+(defn- retry-factor-pause-duration []
+  (catcher/catch*
+    :warn 1
+    (-> (get-config)
+        :reporter
+        :retry-factor-pause-duration
+        duration/parse-string-to-seconds
+        validate-pause-duration)))
 
 
-;### Patch ####################################################################
+;### Send #####################################################################
 
-(defn patch [content-type url content]
-  (let [body (case content-type
-               :json (json/write-str content)
-               :text (str content))
-        params  {:insecure? true
-                 :content-type content-type
-                 :accept :json
-                 :body body} ]
-    (http/patch url params)))
+(defn- send-request [method url params]
+  (http/request method url params))
 
-(defn patch-with-retries
-  ([content-type url content]
-   (patch-with-retries content-type url content (:max_retries @conf)))
-  ([content-type url content max-retries]
+(defn send-request-with-retries
+  ([method url params]
+   (send-request-with-retries method url params (max-retries)))
+  ([method url params max-retries]
    (loop [retry 0]
-     (Thread/sleep (* retry retry (:retry_ms_factor @conf)))
+     (Thread/sleep (* retry retry (retry-factor-pause-duration) 1000))
      (let [res  (try
-                  (patch content-type url content)
-                  {:url url :content content :send-status "success"}
+                  (send-request method url params)
+                  {:url url :method method :params params :send-status "success"}
                   (catch Exception e
-                    (logging/warn "failed " (inc retry) " time to PATCH to " url " with error: " e)
-                    {:url url :content content, :send-status "failed" :error e}))]
+                    (logging/warn "failed " (inc retry) " time to PATCH to "
+                                  url " with error: " (thrown/stringify e))
+                    {:url url :method method :params params, :send-status "failed" :error e}))]
        (if (= (:send-status res) "success")
          res
          (if (>= retry max-retries)
            res
            (recur (inc retry))))))))
-
-
-;### Initialize ###############################################################
-
-(defn initialize [new-conf]
-  (reset! conf (deep-merge @conf
-                           new-conf)))
 
 
 ;### Debug ####################################################################

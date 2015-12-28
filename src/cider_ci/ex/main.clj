@@ -77,7 +77,6 @@
     (nrepl/initialize (-> (get-config) :nrepl ))
     (http/initialize {:basic_auth (-> (get-config) :basic_auth)})
     (web/initialize {:basic_auth (basic-auth) :http (-> (get-config) :http)})
-    (reporter/initialize (:reporter (get-config)))
     (sync/initialize)
     (trials.state/initialize)
     (cider-ci.ex.trials.working-dir-sweeper/initialize)

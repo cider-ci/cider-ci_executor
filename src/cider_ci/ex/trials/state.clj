@@ -64,7 +64,7 @@
 (defn- trial-retention-duration []
   (or (catcher/wrap-with-suppress-and-log-warn
         (parse-config-duration-to-seconds :trial_retention_duration))
-      (* 60 5)))
+      (* 60 30)))
 
 (defn- trials-to-be-swept  []
   (->> @trials-atom

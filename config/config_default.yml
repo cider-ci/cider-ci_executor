@@ -21,8 +21,8 @@ basic_auth:
   password: 90b796aca99df1a74b172f3adee6f170fff3ea4e
 
 reporter:
-  max_retries: 1
-  retry_ms_factor: 1000
+  max-retries: 10
+  retry-factor-pause-duration: 3 Seconds
 
 exec_user:
   name: NULL

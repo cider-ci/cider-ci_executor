@@ -6,6 +6,9 @@
   (:require
     [cider-ci.ex.reporter :as reporter]
     [cider-ci.utils.http :refer [build-server-url]]
+
+    [clojure.data.json :as json]
+
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
     [logbug.debug :as debug]
@@ -49,13 +52,20 @@
                        (map :state)
                        (every? terminal-states))))
 
-(defn send-patch-via-agent [trial params]
-  (let [report-agent (:report-agent trial)
-        url (build-server-url (-> (get-params-atom trial) deref :patch_path))
+(defn send-patch-via-agent [trial data]
+  (let [trial-params (-> (get-params-atom trial) deref)
+
+        report-agent (:report-agent trial)
+        body (json/write-str data)
+        params {:body body
+                :content-type "application/json"
+                :headers {:trial-token (:token trial-params)}
+                }
+        url (build-server-url (trial-params :patch_path))
         fun (fn [agent-state]
               (try
                 (catcher/wrap-with-log-error
-                  (let [res (reporter/patch-with-retries :json url params)]
+                  (let [res (reporter/send-request-with-retries :patch url params)]
                     (conj agent-state res)))
                 (catch Throwable e
                   (conj agent-state {:exception e}))))]

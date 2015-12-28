@@ -20,41 +20,47 @@
   (let [swap-in-fun (fn [patch-agents]
                       (assoc patch-agents
                              (:id script-params)
-                             {:agent (agent {} :error-mode :continue)
-                              :url (patch-url trial-params script-params)}))]
+                             {:agent (agent { :url (patch-url trial-params script-params)
+                                             :token (:token trial-params)
+                                             } :error-mode :continue)}))]
     (swap! patch-agents-atom swap-in-fun)))
 
-(defn- get-patch-agent-and-url [trial-params]
+(defn- get-patch-agent-data [trial-params]
   (get @patch-agents-atom (:id trial-params)))
 
 
 ;##############################################################################
 
-(defn- send-patch [agent-state url params]
-  (try
-    (catcher/wrap-with-log-error
-      (let [res (reporter/patch-with-retries :json url params)]
-        (merge agent-state {:last-patch-result res})))
-    (catch Throwable e
-      (merge agent-state {:last-exception e}))))
+(defn- send-patch [agent-state data]
+  (catcher/catch*
+    :warn (fn [e] (merge agent-state {:last-exception e}))
+    (let [{url :url token :token} agent-state
+          body (json/write-str data)
+          params {:body body
+                  :headers {:trial-token token}
+                  :content-type "application/json"}]
+      (let [res (reporter/send-request-with-retries :patch url params)]
+        (merge agent-state {:last-patch-result res})))))
 
 (defn- send-patch-via-agent [script-atom new-state]
-  (let [{patch-agent :agent url :url} (get-patch-agent-and-url @script-atom)
-        fun (fn [agent-state] (send-patch agent-state url new-state))]
+  (let [{patch-agent :agent} (get-patch-agent-data @script-atom)
+        fun (fn [agent-state] (send-patch agent-state new-state))]
     (send-off patch-agent fun)))
 
-(defn send-field-patch [agent-state url value]
-  (try
-    (catcher/wrap-with-log-error
-      (let [res (reporter/patch-with-retries :text url value)]
-        (merge agent-state {:last-patch-result res})))
-    (catch Throwable e
-      (merge agent-state {:last-exception e}))))
+(defn send-field-patch [agent-state field value]
+  (catcher/catch*
+    :warn (fn [e] (merge agent-state {:last-exception e}))
+    (let [{base-url :url token :token} agent-state
+          url (str base-url "/" (name field))
+          params {:body value
+                  :headers {:trial-token token}
+                  :content-type "text/plain"}]
+      (let [res (reporter/send-request-with-retries :patch url params)]
+        (merge agent-state {:last-patch-result res})))))
 
 (defn send-field-patch-via-agent [script-atom field value]
-  (let [{patch-agent :agent url :url} (get-patch-agent-and-url @script-atom)
-        url (str url "/" (name field))
-        fun (fn [agent-state] (send-field-patch agent-state url value))]
+  (let [{patch-agent :agent} (get-patch-agent-data @script-atom)
+        fun (fn [agent-state] (send-field-patch agent-state field value))]
     (send-off patch-agent fun)))
 
 
@@ -71,4 +77,4 @@
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
-;(debug/debug-ns *ns*)
+(debug/debug-ns *ns*)
