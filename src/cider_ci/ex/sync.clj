@@ -15,6 +15,7 @@
     [cider-ci.utils.daemon :refer [defdaemon]]
     [cider-ci.utils.http :as http :refer [build-service-url]]
     [cider-ci.utils.map :refer [deep-merge]]
+    [cider-ci.utils.runtime :as runtime]
 
     [clojure.data.json :as json]
     [clojure.java.io :as io]
@@ -50,6 +51,7 @@
   (->> (trials.state/get-trials-properties)
        (map #(select-keys % [:trial_id :started_at :finished_at :state]))))
 
+
 (defn sync []
   (catcher/snatch {}
     (let [config (get-config)
@@ -61,7 +63,9 @@
                 :max_load max-load
                 :accepted_repositories (accepted-repositories/get-accepted-repositories)
                 :available_load (- max-load (unfinished-trials-count))
-                :trials (get-trials) }]
+                :trials (get-trials)
+                :status {:memory (runtime/check-memory-usage)}
+                }]
       (let [response (http/post url {:body (json/write-str data)})
             body (json/read-str (:body response) :key-fn keyword)]
         (execute-trials (:trials-to-be-executed body))
