@@ -16,7 +16,7 @@
 
 
 (defn start-when-fulfilled? [params script-a trial]
-  (catcher/wrap-with-log-error
+  (catcher/with-logging {}
     (let [script-key (:script params)
           script (trials/get-script-by-script-key script-key trial)
           state (:state script)]
@@ -29,7 +29,7 @@
               properties))
 
 (defn- start-when-all-fulfilled? [script-a trial]
-  (catcher/wrap-with-log-error
+  (catcher/with-logging {}
     (every?
       #(start-when-fulfilled? % script-a trial)
       (->> @script-a
@@ -38,7 +38,7 @@
           (map amend-with-start-when-defaults)))))
 
 (defn- scripts-atoms-to-be-started [trial]
-  (catcher/wrap-with-log-error
+  (catcher/with-logging {}
     (->> (trials/get-scripts-atoms trial)
          (filter #(-> % deref pending? ))
          (filter #(start-when-all-fulfilled? % trial)))))

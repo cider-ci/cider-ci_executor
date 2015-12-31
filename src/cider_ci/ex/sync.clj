@@ -22,7 +22,7 @@
 
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
-    [logbug.catcher :as catcher :refer [catch*]]
+    [logbug.catcher :as catcher]
     [logbug.ring :refer [wrap-handler-with-logging]]
     ))
 
@@ -35,7 +35,7 @@
 
 (defn- execute-trials [trials]
   (doseq [trial trials]
-    (future (catcher/wrap-with-suppress-and-log-warn
+    (future (catcher/snatch {}
               (trials/execute trial)))))
 
 (defn- terminate-aborting [trials]
@@ -51,7 +51,7 @@
        (map #(select-keys % [:trial_id :started_at :finished_at :state]))))
 
 (defn sync []
-  (catcher/wrap-with-suppress-and-log-warn
+  (catcher/snatch {}
     (let [config (get-config)
           url (build-service-url :dispatcher "/sync")
           traits (into [] (traits/get-traits))
@@ -69,7 +69,7 @@
         ))))
 
 (defn- sync-interval-pause-duration []
-  (or (catcher/wrap-with-suppress-and-log-warn
+  (or (catcher/snatch {}
         (parse-config-duration-to-seconds :sync_interval_pause_duration))
       3))
 

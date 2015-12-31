@@ -62,7 +62,7 @@
 ;### sweep ####################################################################
 
 (defn- trial-retention-duration []
-  (or (catcher/wrap-with-suppress-and-log-warn
+  (or (catcher/snatch {}
         (parse-config-duration-to-seconds :trial_retention_duration))
       (* 60 30)))
 

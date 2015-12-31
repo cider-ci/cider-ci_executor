@@ -16,7 +16,7 @@
     ))
 
 (defn- eval-patch [trial old-state new-state]
-  (catcher/wrap-with-suppress-and-log-error
+  (catcher/snatch {}
     (trial/send-patch-via-agent trial {:scripts {(:key new-state) new-state}})
     ))
 

@@ -26,7 +26,7 @@
     ))
 
 (defn- put-file [file working-dir base-url content-type token]
-  (catcher/wrap-with-log-error
+  (catcher/with-logging {}
     (let [url (str base-url file)]
       (logging/debug "putting attachment"
                      {:file file :url url})
@@ -76,7 +76,7 @@
                                      "the 'include-match' directive'.")
                                 {:matcher matcher})))
               (doseq [path-str (matching-paths-seq working-dir matcher)]
-                (catcher/wrap-with-suppress-and-log-warn
+                (catcher/snatch {}
                   (put-file path-str working-dir base-url content-type token)
                   )))))))))
 

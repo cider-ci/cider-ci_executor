@@ -30,7 +30,7 @@
        (filter clj-fs/directory?)))
 
 (defn- delete-recursively [file-or-string]
-  (catcher/wrap-with-suppress-and-log-warn
+  (catcher/snatch {}
     (let [file (clojure.java.io/file file-or-string)]
       (when (.exists file)
         (when (and (.isDirectory file) (not (Files/isSymbolicLink (.toPath file))))

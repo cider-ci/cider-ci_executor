@@ -23,7 +23,7 @@
 
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
-    [logbug.catcher :as catcher :refer [catch*]]
+    [logbug.catcher :as catcher]
     [logbug.debug :as debug :refer [÷> ÷>>]]
     [logbug.ring :refer [wrap-handler-with-logging]]
     ))
@@ -44,13 +44,13 @@
 
 (defn execute [request]
   (logging/info 'execute (json/write-str request))
-  (catch* :error (fn [e] {:status 422 :body (str e)})
-          (let [trial-parameters  (clojure.walk/keywordize-keys (:json-params request))]
-            (when-not (:trial_id trial-parameters) (throw (IllegalStateException. ":trial_id parameter must be present")))
-            (when-not (:patch_path trial-parameters) (throw (IllegalStateException. ":patch_path parameter must be present")))
-            (accepted-repositories/assert-satisfied (:git_url trial-parameters))
-            (future (trials/execute trial-parameters))
-            {:status 204})))
+  (catcher/snatch {:level :error, :return-fn (fn [e] {:status 422 :body (str e)})}
+    (let [trial-parameters  (clojure.walk/keywordize-keys (:json-params request))]
+      (when-not (:trial_id trial-parameters) (throw (IllegalStateException. ":trial_id parameter must be present")))
+      (when-not (:patch_path trial-parameters) (throw (IllegalStateException. ":patch_path parameter must be present")))
+      (accepted-repositories/assert-satisfied (:git_url trial-parameters))
+      (future (trials/execute trial-parameters))
+      {:status 204})))
 
 (defn get-trials []
   (let [trials (trials.state/get-trials-properties)]

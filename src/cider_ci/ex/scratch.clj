@@ -71,7 +71,7 @@
         is (PipedInputStream. buffer-size)
         os (PipedOutputStream. is)]
     (future
-      (catcher/wrap-with-suppress-and-log-warn
+      (catcher/snatch {}
         (with-open [is is]
           (loop []
             (logging/info "looping")

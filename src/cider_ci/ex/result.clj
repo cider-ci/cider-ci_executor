@@ -27,14 +27,15 @@
     (str "/result.json")))
 
 (defn try-read-and-merge [working-dir params-atom]
-  (catcher/wrap-with-suppress-and-log-debug
-    (let [json-data (-> (file-path-to-result working-dir)
-                        slurp
-                        json/read-str)]
-      (swap! params-atom
-             #(assoc %1 :result %2)
-             json-data))
-    params-atom))
+  (catcher/snatch {}
+    (when (fs/exists? (file-path-to-result working-dir))
+      (let [json-data (-> (file-path-to-result working-dir)
+                          slurp
+                          json/read-str)]
+        (swap! params-atom
+               #(assoc %1 :result %2)
+               json-data))))
+  params-atom)
 
 
 ;### Debug ####################################################################

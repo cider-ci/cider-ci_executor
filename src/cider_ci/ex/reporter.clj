@@ -27,8 +27,7 @@
     v))
 
 (defn- max-retries []
-  (catcher/catch*
-    :warn 10
+  (catcher/snatch {:return-expr 10}
     (-> (get-config)
         :reporter
         :max-retries
@@ -40,8 +39,7 @@
     p))
 
 (defn- retry-factor-pause-duration []
-  (catcher/catch*
-    :warn 1
+  (catcher/snatch {:return-expr 1}
     (-> (get-config)
         :reporter
         :retry-factor-pause-duration

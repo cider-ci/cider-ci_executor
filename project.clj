@@ -8,8 +8,8 @@
   :license {:name "GNU Affero General Public License"
             :url "http://www.gnu.org/licenses/agpl-3.0.html"}
   :dependencies [
-                 [cider-ci/clj-auth "4.0.1"]
-                 [cider-ci/clj-utils "4.2.1"]
+                 [cider-ci/clj-auth "5.0.1"]
+                 [cider-ci/clj-utils "5.1.2"]
 
                  [camel-snake-kebab "0.3.2"]
                  [clj-shellwords "1.0.1"]
@@ -19,9 +19,9 @@
                  [org.apache.commons/commons-lang3 "3.4"]
                  [org.clojure/algo.generic "0.1.2"]
                  [org.clojure/tools.nrepl "0.2.12"]
-                 [selmer "0.9.6"]
+                 [selmer "0.9.7"]
 
-                 [logbug "2.0.0-beta.8"]
+                 [logbug "3.0.0"]
                  [org.clojars.hozumi/clj-commons-exec "1.2.0"]
                  ]
   :source-paths ["src"]
@@ -33,9 +33,8 @@
              :production
              {:resource-paths ["/etc/cider-ci" "config" "resources"]}}
   :plugins [[lein-midje "3.0.0"]]
-  :aot [cider-ci.ex.main]
+  :aot :all
   :main cider-ci.ex.main
   ; :repositories [["tmp" {:url "http://maven-repo-tmp.drtom.ch" :snapshots false}]]
-  :jvm-opts ["-Xmx256m"]
   :repl-options {:timeout  120000}
   )

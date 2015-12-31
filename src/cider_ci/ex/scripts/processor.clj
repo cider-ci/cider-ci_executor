@@ -51,11 +51,11 @@
           (recur))))
     trial
     (finally
-      (catcher/wrap-with-suppress-and-log-warn
+      (catcher/snatch {}
         (trigger/remove-watchers trial))
-      (catcher/wrap-with-suppress-and-log-warn
+      (catcher/snatch {}
         (set-skipped-state-if-not-finnished trial))
-      (catcher/wrap-with-suppress-and-log-warn
+      (catcher/snatch {}
         (future (Thread/sleep (* 60 1000))
                 (patch/remove-watchers trial))))))
 

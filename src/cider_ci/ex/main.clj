@@ -66,7 +66,7 @@
     ))
 
 (defn -main [& args]
-  (catcher/wrap-with-log-error
+  (catcher/with-logging {}
     (log-env)
     (logbug.thrown/reset-ns-filter-regex #".*cider.ci.*")
     (logging/info "starting -main " args)

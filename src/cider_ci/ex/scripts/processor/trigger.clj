@@ -19,14 +19,14 @@
 
 
 (defn trigger [trial msg]
-  (catcher/wrap-with-log-error (skip-unsatisfiable-scripts trial))
-  (catcher/wrap-with-log-error (set-to-terminate-when-fulfilled trial))
-  (catcher/wrap-with-log-error (start-scripts trial))
+  (catcher/with-logging {} (skip-unsatisfiable-scripts trial))
+  (catcher/with-logging {} (set-to-terminate-when-fulfilled trial))
+  (catcher/with-logging {} (start-scripts trial))
   trial)
 
 (defn- eval-watch-trigger [trial old-state new-state]
   (future
-    (catcher/wrap-with-log-error
+    (catcher/with-logging {}
       (when (not= (:state old-state) (:state new-state))
         (trigger trial (str (:name old-state) " : "
                             (:state old-state) " -> " (:state new-state)))))))

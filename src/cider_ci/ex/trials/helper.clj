@@ -18,35 +18,35 @@
 (def ^:private terminal-states #{"passed" "failed" "aborted" "skipped"})
 
 (defn get-params-atom [trial]
-  (catcher/wrap-with-log-error (:params-atom trial)))
+  (catcher/with-logging {} (:params-atom trial)))
 
 (defn get-id [trial]
-  (catcher/wrap-with-log-error (:trial_id @(get-params-atom trial))))
+  (catcher/with-logging {} (:trial_id @(get-params-atom trial))))
 
 (defn get-working-dir [trial]
-  (catcher/wrap-with-log-error (:working_dir @(get-params-atom trial))))
+  (catcher/with-logging {} (:working_dir @(get-params-atom trial))))
 
 (defn get-scripts-atoms [trial]
-  (catcher/wrap-with-log-error (->> @(get-params-atom trial)
+  (catcher/with-logging {} (->> @(get-params-atom trial)
                                     :scripts
                                     (map second))))
 
 (defn get-script-by-name [script-name trial]
-  (catcher/wrap-with-log-error
+  (catcher/with-logging {}
     (->> (get-scripts-atoms trial)
          (map deref)
          (filter #(= script-name (:name %)))
          first )))
 
 (defn get-script-by-script-key [script-key trial]
-  (catcher/wrap-with-log-error
+  (catcher/with-logging {}
     (->> (get-scripts-atoms trial)
          (map deref)
          (filter #(= script-key (:key %)))
          first)))
 
 (defn scripts-done? [trial]
-  (catcher/wrap-with-log-error (->> trial
+  (catcher/with-logging {} (->> trial
                        get-scripts-atoms
                        (map deref)
                        (map :state)
@@ -64,7 +64,7 @@
         url (build-server-url (trial-params :patch_path))
         fun (fn [agent-state]
               (try
-                (catcher/wrap-with-log-error
+                (catcher/with-logging {}
                   (let [res (reporter/send-request-with-retries :patch url params)]
                     (conj agent-state res)))
                 (catch Throwable e

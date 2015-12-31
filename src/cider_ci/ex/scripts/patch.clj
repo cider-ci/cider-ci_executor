@@ -32,8 +32,8 @@
 ;##############################################################################
 
 (defn- send-patch [agent-state data]
-  (catcher/catch*
-    :warn (fn [e] (merge agent-state {:last-exception e}))
+  (catcher/snatch
+    {:return-fn (fn [e] (merge agent-state {:last-exception e}))}
     (let [{url :url token :token} agent-state
           body (json/write-str data)
           params {:body body
@@ -48,8 +48,8 @@
     (send-off patch-agent fun)))
 
 (defn send-field-patch [agent-state field value]
-  (catcher/catch*
-    :warn (fn [e] (merge agent-state {:last-exception e}))
+  (catcher/snatch
+    {:return-fn (fn [e] (merge agent-state {:last-exception e}))}
     (let [{base-url :url token :token} agent-state
           url (str base-url "/" (name field))
           params {:body value
@@ -77,4 +77,4 @@
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
-(debug/debug-ns *ns*)
+;(debug/debug-ns *ns*)

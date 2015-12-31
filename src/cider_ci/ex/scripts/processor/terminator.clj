@@ -25,14 +25,14 @@
 ;### terminate when conditions fullfiled ######################################
 
 (defn- terminate-when-fulfilled? [params script-atom trial]
-  (catcher/wrap-with-log-error
+  (catcher/with-logging {}
     (let [script-key (:script params)
           script (trials/get-script-by-script-key script-key trial)
           state (:state script)]
       (some #{state} (:states params)))))
 
 (defn- terminate-when-all-fulfilled? [script-atom trial]
-  (catcher/wrap-with-log-error
+  (catcher/with-logging {}
     (boolean
       (when-let [terminators (not-empty (:terminate-when @script-atom))]
         (every?  #(terminate-when-fulfilled? % script-atom trial)
@@ -43,7 +43,7 @@
   (doall seq))
 
 (defn set-to-terminate-when-fulfilled [trial]
-  (catcher/wrap-with-log-error
+  (catcher/with-logging {}
     (->> (trials/get-scripts-atoms trial)
          ;(log-seq 'script-atoms)
          (filter #(-> % deref executing?))
