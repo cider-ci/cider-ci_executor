@@ -70,7 +70,7 @@
     (log-env)
     (logbug.thrown/reset-ns-filter-regex #".*cider.ci.*")
     (logging/info "starting -main " args)
-    (config/initialize)
+    (config/initialize {})
     (initialize)
     (traits/initialize)
     (accepted-repositories/initialize)

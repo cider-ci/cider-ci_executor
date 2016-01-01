@@ -12,6 +12,7 @@
     [cider-ci.ex.trials.state :as trials.state]
     [cider-ci.utils.http :as http]
     [cider-ci.utils.routing :as routing]
+    [cider-ci.utils.status :as status]
 
     [clj-time.core :as time]
     [clojure.data :as data]
@@ -81,6 +82,7 @@
 (defn build-main-handler [context]
   (÷> wrap-handler-with-logging
       (compojure.handler/api (build-routes context))
+      status/wrap
       routing/wrap-shutdown
       (ring.middleware.json/wrap-json-params)
       (authorize/wrap-require! {:service true})
