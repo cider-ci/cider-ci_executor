@@ -40,16 +40,19 @@
 
 (defn- delete-orphans []
   (doseq [working-dir (get-trial-dirs)]
-    (when-let [base-name (clj-fs/base-name working-dir)]
-      (when-not (cider-ci.ex.trials.state/get-trial base-name)
-        (logging/info "deleting working-dir " working-dir)
-        (delete-recursively working-dir)))))
+    (when-not (.exists (file (clojure.string/join
+                               [(str working-dir)
+                                File/separator "_cider-ci_keep"])))
+      (when-let [base-name (clj-fs/base-name working-dir)]
+        (when-not (cider-ci.ex.trials.state/get-trial base-name)
+          (logging/info "deleting working-dir " working-dir)
+          (delete-recursively working-dir))))))
 
-(defdaemon "trial-working-dir-sweeper"
-  1 (delete-orphans))
+(defdaemon "trial-working-dir-sweeper" 60 (delete-orphans))
 
 (defn initialize []
-  (start-trial-working-dir-sweeper))
+  (start-trial-working-dir-sweeper)
+  )
 
 
 ;### Debug ####################################################################
