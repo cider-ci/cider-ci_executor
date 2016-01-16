@@ -9,7 +9,7 @@
             :url "http://www.gnu.org/licenses/agpl-3.0.html"}
   :dependencies [
                  [cider-ci/clj-auth "5.0.1"]
-                 [cider-ci/clj-utils "6.0.1"]
+                 [cider-ci/clj-utils "6.1.0"]
 
                  [camel-snake-kebab "0.3.2"]
                  [clj-shellwords "1.0.1"]
@@ -33,7 +33,7 @@
              :production
              {:resource-paths ["/etc/cider-ci" "config" "resources"]}}
   :plugins [[lein-midje "3.0.0"]]
-  :aot :all
+  :aot [cider-ci.ex.main]
   :main cider-ci.ex.main
   ; :repositories [["tmp" {:url "http://maven-repo-tmp.drtom.ch" :snapshots false}]]
   :repl-options {:timeout  120000}
