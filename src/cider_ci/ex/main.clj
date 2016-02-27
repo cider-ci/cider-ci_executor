@@ -1,4 +1,4 @@
-; Copyright (C) 2013, 2014, 2015 Dr. Thomas Schank  (DrTom@schank.ch, Thomas.Schank@algocon.ch)
+; Copyright © 2013 - 2016 Dr. Thomas Schank <Thomas.Schank@AlgoCon.ch>
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software.
 ;
@@ -18,13 +18,13 @@
     [cider-ci.ex.trials.working-dir-sweeper]
     [cider-ci.ex.web :as web]
     [cider-ci.utils.config :as config :refer [get-config merge-in-config]]
-    [cider-ci.utils.http :as http]
     [cider-ci.utils.nrepl :as nrepl]
     [clojure.tools.logging :as logging]
     [logbug.catcher :as catcher]
     [logbug.debug :as debug]
     [logbug.thrown]
     [me.raynes.fs :as clj-fs]
+    [cider-ci.utils.fs :as fs]
     ))
 
 (defn initialize-and-configure-tmp-dir []
@@ -70,12 +70,13 @@
     (log-env)
     (logbug.thrown/reset-ns-filter-regex #".*cider.ci.*")
     (logging/info "starting -main " args)
-    (config/initialize {})
+    (config/initialize
+      {:overrides {:service :executor}})
+    (clojure.string/join (File/separator) args)
     (initialize)
     (traits/initialize)
     (accepted-repositories/initialize)
     (nrepl/initialize (-> (get-config) :nrepl ))
-    (http/initialize {:basic_auth (-> (get-config) :basic_auth)})
     (web/initialize {:basic_auth (basic-auth) :http (-> (get-config) :http)})
     (sync/initialize)
     (trials.state/initialize)

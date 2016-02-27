@@ -18,7 +18,7 @@ name: DemoExecutor
 
 basic_auth:
   username: 35cff40c-b4f8-4ca3-9217-d49c9c35f375
-  password: 90b796aca99df1a74b172f3adee6f170fff3ea4e
+  password: 03b774c9d260ad7329ad3c6dcbc6ea9bec943486
 
 reporter:
   max-retries: 10
