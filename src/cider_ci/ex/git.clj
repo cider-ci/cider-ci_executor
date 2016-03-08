@@ -39,17 +39,14 @@
         commit-id (:git_commit_id params)
         git-proxies (:git-proxies params)
         repository-url (:git_url params)
-        proxy-url ((-> commit-id str keyword) git-proxies)
-        branch-name (:git_branch_name params)]
+        proxy-url ((-> commit-id str keyword) git-proxies)]
     (assert (not (blank? working-dir-id)))
     (assert (not (blank? commit-id)))
     (assert (not (blank? repository-url)))
     (let [working-dir (-> (str (:working_dir (get-config))
                                (File/separator) working-dir-id)
-                          fs/absolute
-                          fs/normalized
-                          str)]
-      (repository/serialized-clone-to-dir repository-url proxy-url commit-id branch-name working-dir)
+                          fs/absolute fs/normalized str)]
+      (repository/serialized-clone-to-dir repository-url proxy-url commit-id working-dir)
       (when-let [clone-options (-> params :git-options :submodules :clone)]
         (submodules/update working-dir clone-options git-proxies))
       working-dir)))

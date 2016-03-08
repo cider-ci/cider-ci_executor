@@ -116,28 +116,23 @@
       fs/normalized
       str))
 
-(defn- clone-to-dir [repository-path commit-id branch-name dir]
-  (let [cmd (concat
-              ["git" "clone" "--shared"]
-              (if (clojure.string/blank? branch-name)
-                []
-                ["--branch" branch-name])
-              [repository-path dir])]
-    (system/exec-with-success-or-throw
-      cmd {:watchdog (* 60 1000)})
-    (system/exec-with-success-or-throw
-      ["git" "checkout" commit-id] {:dir dir})
-    true))
+(defn- clone-to-dir [repository-path commit-id dir]
+  (system/exec-with-success-or-throw
+    ["git" "clone" "--shared" "--no-checkout" repository-path dir]
+    {:watchdog (* 10 1000)})
+  (system/exec-with-success-or-throw
+    ["git" "checkout" commit-id]
+    {:dir dir :watchdog (* 60 1000)}))
 
 (defn serialized-clone-to-dir
   "Clones creates a shallow clone in working-dir by referencing a local clone.
   Throws an exception if creating the clone failed."
-  [repository-url proxy-url commit-id branch-name working-dir]
+  [repository-url proxy-url commit-id working-dir]
   (let [repository-path (serialized-initialize-or-update-if-required repository-url proxy-url commit-id)
         repository-agent (get-or-create-repository-agent repository-url)
         res-atom (atom nil)
         fun (fn [agent-state]
-              (try (clone-to-dir repository-path commit-id branch-name working-dir)
+              (try (clone-to-dir repository-path commit-id working-dir)
                    (reset! res-atom
                            (-> agent-state
                                (dissoc :exception)
