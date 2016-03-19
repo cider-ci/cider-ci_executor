@@ -7,8 +7,8 @@
     [cider-ci.ex.utils.include-exclude :as in-ex]
     [cider-ci.ex.trials.helper :refer :all]
     [cider-ci.utils.http :refer [build-server-url]]
-
-    [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
+    [cider-ci.utils.core :refer :all]
+    [cider-ci.utils.map :as map :refer [convert-to-array]]
     [cider-ci.utils.http :as http]
 
     [logbug.debug :as debug]
@@ -67,13 +67,13 @@
         token (:token params)]
     (doseq [kind ["tree" "trial"]]
       (let [base-url (build-server-url
-                       (kind-property kind "-attachments-path" params))]
-        (when-let [matchers (kind-property kind "-attachments" params)]
+                       (kind-property kind "_attachments_path" params))]
+        (when-let [matchers (kind-property kind "_attachments" params)]
           (doseq [matcher (convert-to-array matchers)]
-            (let [content-type (:content-type matcher)]
-              (when-not (:include-match matcher)
+            (let [content-type (:content_type matcher)]
+              (when-not (:include_match matcher)
                 (throw (ex-info (str "An attachment matcher must include "
-                                     "the 'include-match' directive'.")
+                                     "the 'include_match' directive'.")
                                 {:matcher matcher})))
               (doseq [path-str (matching-paths-seq working-dir matcher)]
                 (catcher/snatch {}

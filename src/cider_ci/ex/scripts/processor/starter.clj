@@ -7,7 +7,8 @@
     [cider-ci.ex.scripts.exec :as exec]
     [cider-ci.ex.trials.helper :as trials]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
-    [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
+    [cider-ci.utils.core :refer :all]
+    [cider-ci.utils.map :refer [convert-to-array]]
     [clj-time.core :as time]
     [clojure.tools.logging :as logging]
     [logbug.catcher :as catcher]
@@ -17,12 +18,12 @@
 
 (defn start-when-fulfilled? [params script-a trial]
   (catcher/with-logging {}
-    (let [script-key (:script params)
+    (let [script-key (:script_key params)
           script (trials/get-script-by-script-key script-key trial)
           state (:state script)]
-      (logging/debug "start-when-fulfilled?" {:script-key script-key :state state :params params :script script})
       (some #{state} (:states params)))))
 
+; TODO remove type
 (defn amend-with-start-when-defaults [properties]
   (deep-merge {:type "script"
                :states ["passed"]}
@@ -33,7 +34,7 @@
     (every?
       #(start-when-fulfilled? % script-a trial)
       (->> @script-a
-          :start-when
+          :start_when
           convert-to-array
           (map amend-with-start-when-defaults)))))
 
@@ -83,7 +84,7 @@
          :last_script @script-atom))
 
 (defn dispatch [script-atom]
-  (if-let [exclusive-resource (:exclusive-executor-resource @script-atom)]
+  (if-let [exclusive-resource (:exclusive_executor_resource @script-atom)]
     (send-off (get-exclusive-resource-agent exclusive-resource)
               exec-inside-agent script-atom)
     (future (exec/execute script-atom))))

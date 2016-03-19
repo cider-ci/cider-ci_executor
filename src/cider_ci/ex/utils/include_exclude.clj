@@ -17,12 +17,12 @@
   (re-find (re-pattern pattern) s))
 
 (defn- include-match-includes? [s match-options]
-  (if-let [include-match (:include-match match-options)]
+  (if-let [include-match (:include_match match-options)]
     (matches-s? s include-match)
     true))
 
 (defn- exclude-match-not-excludes? [s match-options]
-  (if-let [exclude-match (:exclude-match match-options)]
+  (if-let [exclude-match (:exclude_match match-options)]
     (not (matches-s? s exclude-match))
     true))
 

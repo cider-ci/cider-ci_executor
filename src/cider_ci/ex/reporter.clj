@@ -3,7 +3,7 @@
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.ex.json]
     [cider-ci.utils.http :as http]
-    [cider-ci.utils.map :refer [deep-merge]]
+    [cider-ci.utils.core :refer :all]
     [cider-ci.utils.duration :as duration]
 
     [clj-time.core :as time]

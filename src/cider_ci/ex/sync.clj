@@ -11,11 +11,14 @@
     [cider-ci.ex.traits :as traits]
     [cider-ci.ex.trials :as trials]
     [cider-ci.ex.trials.state :as trials.state]
+    [cider-ci.ex.self-update :refer [self-update!]]
+
     [cider-ci.utils.config :refer [get-config parse-config-duration-to-seconds]]
     [cider-ci.utils.daemon :refer [defdaemon]]
     [cider-ci.utils.http :as http :refer [build-service-url]]
-    [cider-ci.utils.map :refer [deep-merge]]
+    [cider-ci.utils.core :refer :all]
     [cider-ci.utils.runtime :as runtime]
+    [cider-ci.self ]
 
     [clojure.data.json :as json]
     [clojure.java.io :as io]
@@ -31,7 +34,7 @@
 (defn- unfinished-trials-count []
   (->> (trials.state/get-trials-properties)
        (filter #(-> % :state
-                    #{"passed" "failed" "skipped" "aborted"}
+                    #{"defective" "passed" "failed" "skipped" "aborted"}
                     boolean not))
        count))
 
@@ -54,7 +57,8 @@
 
 
 (defn sync []
-  (catcher/snatch {}
+  (catcher/snatch
+    {}
     (let [config (get-config)
           url (build-service-url :dispatcher "/sync")
           traits (into [] (traits/get-traits))
@@ -65,12 +69,13 @@
                 :accepted_repositories (accepted-repositories/get-accepted-repositories)
                 :available_load (- max-load (unfinished-trials-count))
                 :trials (get-trials)
-                :status {:memory (runtime/check-memory-usage)}
-                }]
+                :status {:memory (runtime/check-memory-usage)
+                         :version cider-ci.self/VERSION}}]
       (let [response (http/post url {:body (json/write-str data)})
             body (json/read-str (:body response) :key-fn keyword)]
         (execute-trials (:trials-to-be-executed body))
         (terminate-aborting (->> body :trials-being-processed))
+        (self-update! body)
         ))))
 
 (defn- sync-interval-pause-duration []

@@ -6,20 +6,36 @@
 (ns cider-ci.ex.traits
   (:require
     [cider-ci.ex.utils.tags :refer :all]
+    [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.daemon :as daemon :refer [defdaemon]]
     [cider-ci.utils.fs :refer :all]
-    [cider-ci.utils.map :refer [deep-merge]]
+    [cider-ci.utils.core :refer :all]
     [clojure.java.io :as io]
     [clojure.set :refer [union]]
     [clojure.string :refer [blank? lower-case split trim]]
+
     [clojure.tools.logging :as logging]
     [logbug.debug :as debug]
-    ))
+    )
+  (:import
+    [org.apache.commons.lang3 SystemUtils]
+    )
+  )
+
 
 (defonce ^:private traits (atom (sorted-set)))
 
 (defn get-traits []
-  @traits)
+  (->> (-> @traits
+           (conj (:hostname (get-config)))
+           (conj (:name (get-config)))
+           (conj (SystemUtils/OS_NAME))
+           (conj (str (SystemUtils/OS_NAME) " " (SystemUtils/OS_VERSION))))
+       (map str)
+       (map clojure.string/trim)
+       (filter (complement clojure.string/blank?))
+       (apply sorted-set)))
+
 
 (defn- set-traits [new-traits]
   (when-not (= new-traits @traits)
@@ -28,7 +44,7 @@
 
 (defn- read-traits []
   (->> [(system-path "config" "traits.yml")
-        (system-path ".." "config" "traits.yml")]
+        (system-path-abs "etc" "cider-ci" "traits.yml")]
        (read-tags-from-yaml-files)
        set-traits))
 

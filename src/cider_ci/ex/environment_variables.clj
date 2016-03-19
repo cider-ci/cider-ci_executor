@@ -3,19 +3,19 @@
 ; See the "LICENSE.txt" file provided with this software.
 (ns cider-ci.ex.environment-variables
   (:require
+    [cider-ci.ex.scripts.exec.shared :refer :all]
+    [cider-ci.utils.core :refer :all]
+    [selmer.parser]
+
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
-    [selmer.parser]
     [logbug.debug :as debug]
-    [cider-ci.ex.scripts.exec.shared :refer :all]
     ))
 
 
-
-; TODO: (name k) doesn't play well with '/'
 (defn- stringify [mp]
   (map
-    (fn [[k v]] [(name k) (str v)])
+    (fn [[k v]] [(to-cistr k) (to-cistr v)])
     mp))
 
 (defn- remove-nil-values [mp]
@@ -55,11 +55,11 @@
                :CIDER_CI true
                :CONTINUOUS_INTEGRATION true}
               (:ports params)
-              (:environment-variables params))
+              (:environment_variables params))
        remove-nil-values
        stringify
        upper-case-keys
-       (#(if (:template-environment-variables params)
+       (#(if (:template_environment_variables params)
            (process-templates %) %))
        (into {})))
 

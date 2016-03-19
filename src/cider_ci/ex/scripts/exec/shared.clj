@@ -8,11 +8,16 @@
     )
   (:require
     [cider-ci.utils.config :as config :refer [get-config]]
-    [clj-logging-config.log4j :as logging-config]
+    [cider-ci.utils.core :refer :all]
+
+    [pandect.algo.sha1 :refer [sha1]]
     [clj-time.core :as time]
     [clojure.set :refer [difference union]]
     [clojure.string :as string :refer [split trim]]
+
     [clojure.tools.logging :as logging]
+    [clj-logging-config.log4j :as logging-config]
+    [logbug.catcher :refer [snatch]]
     [logbug.debug :as debug]
     [logbug.thrown :as thrown]
     ))
@@ -24,12 +29,23 @@
                  (apply time/plus
                         (concat [started-at (time/seconds timeout)] ds)))))
 
-(defn add-error [script-atom error]
-  (swap! script-atom
-         (fn [params error]
-           (assoc params :error
-                  (str (:error params) "\n\n" error)))
-         error))
+(defn add-issue [script-atom issue]
+  (snatch
+    {}
+    (assert (not (clojure.string/blank? (:title issue)))
+            (str "An issue must have a title. " issue))
+    (assert (not (clojure.string/blank? (:description issue)))
+            (str "An issue must have a title. " issue))
+    (swap! script-atom
+           (fn [params issue]
+             (let [k (or (:key issue) (sha1 (str issue)))]
+               (deep-merge params
+                           {:issues {k (deep-merge
+                                         issue
+                                         {:created_at (time/now)})
+                                     }})))
+
+           issue)))
 
 (defn merge-params [script-atom add-params]
   (swap! script-atom

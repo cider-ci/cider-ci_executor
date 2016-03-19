@@ -31,7 +31,7 @@
   (I> identity-with-logging
       (system/exec-with-success-or-throw
         ["git" "submodule" "status"  relative-submodule-path]
-        {:dir dir :watchdog (* 30 1000) })
+        {:dir dir :watchdog "1 Minute"  })
       :out
       (#(if (string/blank? %)
           (throw (ex-info (str "Not git commit for submodule "
@@ -56,20 +56,18 @@
 
 
 (defn- include-match-includes? [path clone-options]
-  (if-let [include-match (:include-match clone-options)]
+  (if-let [include-match (:include_match clone-options)]
     (matches-path? path include-match)
     true))
 
 (defn- exclude-match-not-excludes? [path clone-options]
-  (if-let [exclude-match (:exclude-match clone-options)]
+  (if-let [exclude-match (:exclude_match clone-options)]
     (not (matches-path? path exclude-match))
     true))
 
 (defn- clone-path? [path clone-options]
-  (if (= clone-options true)
-    true
-    (and (include-match-includes? path clone-options)
-         (exclude-match-not-excludes? path clone-options))))
+  (and (include-match-includes? path clone-options)
+       (exclude-match-not-excludes? path clone-options)))
 
 ;### update ####################################################################
 
@@ -77,9 +75,6 @@
 
 (defn update-submodule [dir path bare-dir clone-options git-proxies]
   (let [submodule-dir (str dir (java.io.File/separator) path)]
-    ;(system/exec-with-success-or-throw
-    ;  ["git" "submodule" "update" "--no-fetch" "--init" "--reference" bare-dir path]
-    ;  {:dir dir :watchdog 10000})
     (update submodule-dir clone-options git-proxies)))
 
 (defn update [dir clone-options git-proxies]

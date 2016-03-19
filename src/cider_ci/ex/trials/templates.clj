@@ -20,27 +20,32 @@
 
 
 
-(defn- render-string-template [s env-vars]
-  (let [rendered (render s env-vars)]
-    (if (not= rendered s)
-      (render-string-template rendered env-vars)
-      rendered)))
+(defn render-string-template [s env-vars]
+  (let [env-vars (clojure.walk/keywordize-keys env-vars)]
+    (let [rendered (render s env-vars)]
+      (if (not= rendered s)
+        (render-string-template rendered env-vars)
+        rendered))))
 
 (defn- render-file-template
-  ([src dest env-vars]
-   (let [template (slurp src)
-         rendered (render-string-template template env-vars)]
-     (spit dest rendered))))
+  ([src dest env-vars template]
+   (try (let [template (slurp src)
+              rendered (render-string-template template env-vars)]
+          (spit dest rendered))
+        (catch java.io.FileNotFoundException e
+          (throw (ex-info
+                   (str "The template for " template " does not to exist.")
+                   {:template template}
+                   e))))))
 
 (defn- render-template
   ([template params]
    (let [working-dir (:working_dir params)
          env-vars (-> params
-                      cider-ci.ex.environment-variables/prepare
-                      clojure.walk/keywordize-keys)
+                      cider-ci.ex.environment-variables/prepare)
          src (join (File/separator) (flatten [working-dir (:src template)]))
          dest (join (File/separator) (flatten [working-dir (:dest template)]))]
-     (render-file-template src dest env-vars)
+     (render-file-template src dest env-vars template)
      )))
 
 (defn render-templates [trial]

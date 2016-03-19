@@ -20,3 +20,4 @@ config/traits.yml
 config/accepted-repositories.yml
 pom.xml
 pom.xml.asc
+src/cider_ci/self.clj

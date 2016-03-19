@@ -7,15 +7,13 @@
     [cider-ci.ex.scripts.patch :as patch]
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.duration :refer [parse-string-to-seconds]]
-    [cider-ci.utils.map :refer [deep-merge]]
+    [cider-ci.utils.core :refer :all]
 
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
     [logbug.catcher :as catcher]
     [logbug.debug :as debug]
     ))
-
-(def ^:private terminal-states #{ "failed" "passed" "skipped" "aborted" })
 
 ;##############################################################################
 
@@ -31,11 +29,9 @@
 
 (defn- prepare-script-params [script-params trial-params]
   (deep-merge
-    (select-keys trial-params
-                 [:environment-variables
-                  :working_dir :private_dir])
-    (-> script-params
-        prepare-timeout)))
+    (select-keys trial-params [:environment_variables])
+    (-> script-params prepare-timeout)
+    (select-keys trial-params [:working_dir :private_dir])))
 
 (defn prepare-script [script-params trial-params]
   (patch/create-patch-agent script-params trial-params)

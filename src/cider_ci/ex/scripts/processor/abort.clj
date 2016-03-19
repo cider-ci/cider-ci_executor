@@ -4,7 +4,7 @@
     [cider-ci.ex.scripts.processor.skipper :as scripts-skipper]
     [cider-ci.ex.trials.helper :as trials]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
-    [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
+    [cider-ci.utils.core :refer :all]
     [clj-time.core :as time]
     [clojure.tools.logging :as logging]
     [logbug.catcher :as catcher]
@@ -18,7 +18,7 @@
 (defn- set-to-terminate-when-executing [trial]
   (->> (trials/get-scripts-atoms trial)
        (filter #(-> % deref executing?))
-       (filter #(-> % deref :ignore-abort not))
+       (filter #(-> % deref :ignore_abort not))
        (map (fn [script-atom]
               (swap! script-atom  #(assoc % :terminate true ))))
        doall))

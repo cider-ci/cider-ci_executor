@@ -2,17 +2,12 @@
 ; Licensed under the terms of the GNU Affero General Public License v3.
 ; See the "LICENSE.txt" file provided with this software.
 
-(import 'java.io.File)
-(load-file (str "src" File/separator "cider_ci" File/separator "executor.clj"))
-
-(defproject cider-ci_executor cider-ci.executor/VERSION
+(defproject cider-ci/executor "0.0.0-PLACEHOLDER"
   :description "Executor for Cider-CI."
   :url "https://github.com/DrTom/cider-ci_executor"
   :license {:name "GNU Affero General Public License"
             :url "http://www.gnu.org/licenses/agpl-3.0.html"}
   :dependencies [
-                 [cider-ci/clj-utils "8.3.0"]
-
                  [camel-snake-kebab "0.3.2"]
                  [clj-shellwords "1.0.1"]
                  [clojure-ini "0.0.2"]
@@ -26,16 +21,14 @@
                  [logbug "4.0.0"]
                  [org.clojars.hozumi/clj-commons-exec "1.2.0"]
                  ]
+  :plugins [[cider-ci/lein_cider-ci_dev "0.2.0"]]
   :source-paths ["src"]
   :profiles {:dev
              {:dependencies [[midje "1.8.3"]]
               :plugins [[lein-midje "3.1.1"]]
               :repositories [["tmp" {:url "http://maven-repo-tmp.drtom.ch" :snapshots false}]]
-              :resource-paths ["config" "resources"]}
-             :production
-             {:resource-paths ["/etc/cider-ci" "config" "resources"]}}
-  :plugins [[lein-midje "3.0.0"]]
-  :aot [cider-ci.ex.main]
+              :resource-paths ["config" "resources"]}}
+  :aot [:all]
   :main cider-ci.ex.main
   ; :repositories [["tmp" {:url "http://maven-repo-tmp.drtom.ch" :snapshots false}]]
   :repl-options {:timeout  120000}

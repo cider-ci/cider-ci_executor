@@ -7,9 +7,11 @@
     [cider-ci.ex.scripts.exec :as exec]
     [cider-ci.ex.trials.helper :refer [get-script-by-script-key get-scripts-atoms]]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
-    [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
+    [cider-ci.utils.core :refer :all]
+    [cider-ci.utils.map :refer [convert-to-array]]
     [cider-ci.ex.scripts.processor.starter :refer [amend-with-start-when-defaults start-when-fulfilled?]]
     [clj-time.core :as time]
+
     [clojure.tools.logging :as logging]
     [logbug.catcher :as catcher]
     [logbug.debug :as debug]
@@ -23,7 +25,7 @@
 
 (defn- dependency-finished? [params script-atom trial]
   (boolean
-    (when-let [depend-on-script (get-script-by-script-key (:script params) trial)]
+    (when-let [depend-on-script (get-script-by-script-key (:script_key params) trial)]
                (finished? depend-on-script))))
 
 (defn- unsatisfiable? [& args]
@@ -31,7 +33,7 @@
 
 (defn- any-unsatisfiable? [script-atom trial]
   (boolean
-    (when-let [start-when-conditions (:start-when @script-atom)]
+    (when-let [start-when-conditions (:start_when @script-atom)]
       (->> start-when-conditions
            (debug-pipe ['any-unsatisfiable? 'start-when-conditions])
            convert-to-array

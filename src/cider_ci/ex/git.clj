@@ -35,6 +35,7 @@
 ;### Core Git #################################################################
 
 (defn prepare-and-create-working-dir [params]
+  ;(throw (ex-info "Simulating exception during prepare-and-create-working-dir." {}))
   (let [working-dir-id (:trial_id params)
         commit-id (:git_commit_id params)
         git-proxies (:git-proxies params)
@@ -47,7 +48,7 @@
                                (File/separator) working-dir-id)
                           fs/absolute fs/normalized str)]
       (repository/serialized-clone-to-dir repository-url proxy-url commit-id working-dir)
-      (when-let [clone-options (-> params :git-options :submodules :clone)]
+      (when-let [clone-options (-> params :git_options :submodules)]
         (submodules/update working-dir clone-options git-proxies))
       working-dir)))
 

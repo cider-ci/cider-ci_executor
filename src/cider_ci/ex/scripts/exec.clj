@@ -8,9 +8,7 @@
     [org.apache.commons.lang3 SystemUtils]
     )
   (:require
-
-    [cider-ci.ex.environment-variables :as environment-variables]
-    [cider-ci.ex.scripts.exec.shared :refer :all]
+    [cider-ci.ex.scripts.exec.shared :refer [add-issue working-dir expired? merge-params]]
     [cider-ci.ex.scripts.exec.terminator :refer [terminate create-watchdog pid-file-path]]
     [cider-ci.ex.scripts.patch :as scripts.patch]
     [cider-ci.ex.scripts.script :as script]
@@ -82,7 +80,7 @@
                                               :script-file-path (script-file-path params)
                                               :working-dir-path (working-dir params)
                                               :exec-user-name (exec-user-name)
-                                              :environment-variables (:environment-variables params)
+                                              :environment_variables (:environment_variables params)
                                               })))
 
 (defn- wrapper-file-path [params]
@@ -106,7 +104,7 @@
 (defn- wrapper-command [params]
   (cond
     SystemUtils/IS_OS_UNIX (concat ["sudo" "-u" (exec-user-name)]
-                                   (-> params :environment-variables sudo-env-vars)
+                                   (-> params :environment_variables sudo-env-vars)
                                    ["-n" "-i" (:wrapper-file params)])
     SystemUtils/IS_OS_WINDOWS [(-> (get-config) :windows :fsi_path)
                                (:wrapper-file params)]))
@@ -116,6 +114,7 @@
     #(scripts.patch/send-field-patch-via-agent script-atom field-name %)
     #(finished? script-atom)))
 
+; TODO use system/exec ?
 (defn exec-sh [script-atom]
   (let [params @script-atom
         command (wrapper-command params)
@@ -140,14 +139,19 @@
             "failed")
    :error (:error exec-res)})
 
+(defn issue-for-exception [e]
+  {:title (.getMessage e)
+   :description "See the executor logs for details."
+   :type "error"})
+
 (defn- set-script-atom-for-execption [script-atom e]
   (let [e-str (thrown/stringify e)]
     (logging/warn e-str)
-    (add-error script-atom e-str)
+    (add-issue script-atom (issue-for-exception e))
     (swap! script-atom
            (fn [params]
              (conj params
-                   {:state "failed"
+                   {:state "defective"
                     :finished_at (time/now)})))))
 
 (defn- wait-for-or-terminate [script-atom]
@@ -156,23 +160,28 @@
         started-at (:started_at @script-atom)]
     (while (not (realized? exec-future))
       (when (expired? script-atom)
-        (add-error script-atom "Timeout reached!")
-        (terminate script-atom))
+        (add-issue script-atom
+                   {:title "Timeout reached!"
+                    :description (str "The script was set to be terminated! "
+                                      "Timeout value: " (or (str (:timeout @script-atom))
+                                                      "unknown"))})
+        (terminate script-atom)
+        (throw (ex-info "The script timed out!" {})))
       (when (:terminate @script-atom)
-        (add-error script-atom "Termination requested!")
+        ;(add-error script-atom "Termination requested!")
         (terminate script-atom))
       (when (expired? script-atom (time/seconds 60))
-        (throw (IllegalStateException. (str "Giving up to wait for termination!" @script-atom))))
+        (throw (IllegalStateException.
+                 (str "Giving up to wait for termination!" @script-atom))))
       (Thread/sleep 1000))))
 
 (defn execute [script-atom]
   (try (merge-params script-atom
                      {:started_at (time/now)
                       :state "executing"
-                      :watchdog (create-watchdog)
-                      :environment-variables (environment-variables/prepare @script-atom)})
-       ; must be done again/twice/separately because the environment-variables must be
-       ; set properly when calling create-wrapper-file and create-wrapper-file
+                      :watchdog (create-watchdog)})
+       ; do it again because the env vars must be already in place when calling
+       ; create-script-file and create-wrapper-file
        (merge-params script-atom
                      {:script-file (create-script-file @script-atom)
                       :wrapper-file (create-wrapper-file @script-atom)})
@@ -191,6 +200,5 @@
 ;(logging-config/set-logger! :level :info)
 ;(remove-ns (symbol (str *ns*)))
 ;(debug/debug-ns *ns*)
-
 ;(logging-config/set-logger! :level :debug)
 ;(debug/wrap-with-log-debug #'exec-sh)

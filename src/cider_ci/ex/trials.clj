@@ -6,6 +6,7 @@
   (:require
     [cider-ci.ex.accepted-repositories :as accepted-repositories]
     [cider-ci.ex.attachments :as attachments]
+    [cider-ci.ex.environment-variables :as environment-variables]
     [cider-ci.ex.git :as git]
     [cider-ci.ex.port-provider :as port-provider]
     [cider-ci.ex.reporter :as reporter]
@@ -15,19 +16,21 @@
     [cider-ci.ex.shared :refer :all]
     [cider-ci.ex.trials.helper :refer :all]
     [cider-ci.ex.trials.state :refer [create-trial]]
-    [cider-ci.ex.trials.templates :refer :all]
+    [cider-ci.ex.trials.templates :refer [render-templates render-string-template]]
+    [cider-ci.utils.core :refer :all]
     [cider-ci.utils.daemon :as daemon]
     [cider-ci.utils.http :refer [build-server-url]]
-    [cider-ci.utils.map :refer [deep-merge]]
     [cider-ci.utils.system :as system]
-    [clj-logging-config.log4j :as logging-config]
+
     [clj-time.core :as time]
+    [clojure.data.json :as json]
+    [me.raynes.fs :as clj-fs]
+
+    [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
-    [logbug.catcher :as catcher]
+    [logbug.catcher :as catcher :refer [snatch]]
     [logbug.debug :as debug]
     [logbug.thrown :as thrown]
-    [me.raynes.fs :as clj-fs]
-    [clojure.data.json :as json]
     )
   (:import
     [org.apache.commons.lang3 SystemUtils]
@@ -103,14 +106,25 @@
   (attachments/find-and-upload trial)
   trial)
 
+(defn evaluate-states [states]
+  (cond
+    (empty? states) "defective"
+    (every? #{"passed"} states) "passed"
+    (every? #{"aborted"} states) "aborted"
+    (some #{"defective"} states) "defective"
+    (some #{"failed"} states) "failed"
+    :else "defective"))
+
 (defn set-final-state [trial]
-  (let [passed?  (->> (get-scripts-atoms trial)
-                      (filter #(-> % deref :ignore-state not))
-                      (every? #(= "passed" (-> % deref :state))))
-        final-state (if passed? "passed" "failed")]
+  (let [final-state (->> (get-scripts-atoms trial)
+                         (map deref)
+                         (filter #(-> % :ignore_state not))
+                         (map :state)
+                         (filter identity)
+                         evaluate-states)]
     (swap! (get-params-atom trial)
            #(conj %1 {:state %2, :finished_at (time/now)})
-           final-state))
+           (name final-state)))
   trial)
 
 (defn set-result [trial]
@@ -131,35 +145,58 @@
 
 ;#### execute #################################################################
 
+(defn execute-execption-handler [trial exception]
+  (swap! (get-params-atom trial)
+         (fn [params exception]
+           (conj params
+                 {:state "defective",
+                  :finished_at (time/now)
+                  :error (str (.getMessage exception)
+                              " See the executor logs for details."
+                              )}))
+         exception)
+  (send-final-result trial)
+  trial)
+
+(defn prepare-scripts-environment-variables [trial]
+  (doseq [script-atom (get-scripts-atoms trial)]
+    (swap! script-atom #(merge % {:environment_variables
+                                 (environment-variables/prepare %)})))
+  trial)
+
+(defn template-exclusive-executor-resource-locks [trial]
+  (doseq [script-atom (get-scripts-atoms trial)]
+    (if-let [exclusive-resource (:exclusive_executor_resource @script-atom)]
+      (swap! script-atom #(merge % {:exclusive_executor_resource
+                                    (render-string-template
+                                      exclusive-resource
+                                      (:environment_variables %))}))))
+  trial)
+
 (defn execute [params]
   (let [trial (create-trial params)]
-    (try (accepted-repositories/assert-satisfied (:git_url params))
-         (->> trial
-              create-and-insert-working-dir
-              prepare-and-insert-scripts)
-         (let [ports (occupy-and-insert-ports trial)]
-           (try (->> trial
-                     render-templates
-                     change-owner-of-working-dir
-                     set-and-send-start-params
-                     cider-ci.ex.scripts.processor/process
-                     put-attachments
-                     set-final-state
-                     set-result
-                     send-final-result)
-                (finally (release-ports ports)
-                         trial)))
-         (catch Exception e
-           (let [e-str (thrown/stringify e)]
-             (swap! (get-params-atom trial)
-                    (fn [params] (conj params
-                                       {:state "failed",
-                                        :finished_at (time/now)
-                                        :error e-str })))
-             (logging/error e-str)
-             (send-final-result trial)))
-         (finally trial))
-    trial))
+    (snatch
+      {:level :warn
+       :return-fn (fn [e] (execute-execption-handler trial e))}
+      (accepted-repositories/assert-satisfied (:git_url params))
+      (->> trial
+           create-and-insert-working-dir
+           prepare-and-insert-scripts)
+      (let [ports (occupy-and-insert-ports trial)]
+        (try (->> trial
+                  render-templates
+                  prepare-scripts-environment-variables
+                  template-exclusive-executor-resource-locks
+                  change-owner-of-working-dir
+                  set-and-send-start-params
+                  cider-ci.ex.scripts.processor/process
+                  put-attachments
+                  set-final-state
+                  set-result
+                  send-final-result)
+             (finally (release-ports ports)
+                      trial)))
+      trial)))
 
 
 ;#### initialize ###############################################################
@@ -169,6 +206,7 @@
 
 
 ;### Debug ####################################################################
-;(logging-config/set-logger! :level :debug)
+;logging-config/set-logger! :level :debug)
 ;(logging-config/set-logger! :level :info)
 ;(debug/debug-ns *ns*)
+;(debug/wrap-with-log-debug #'prepare-scripts-environment-variables)

@@ -1,24 +1,34 @@
-sync_interval_pause_duration: 10 Seconds
+#name: DemoExecutor
+#
+#basic_auth:
+#  username: 35cff40c-b4f8-4ca3-9217-d49c9c35f375
+#  password: 03b774c9d260ad7329ad3c6dcbc6ea9bec943486
+#
+
+self_update: false
+
+server_secret: master-secret
+
+# for is running check during tests
+secret: master-secret
+
+sync_interval_pause_duration: 1 Second
 
 trial_retention_duration: 30 Minutes
 
 default_script_timeout: 3 Minutes
 
+server_base_url: http://localhost:8888
+
 nrepl:
   port: 7883
-  bind: "127.0.0.1"
-  enabled: true
+  bind: localhost
+  enabled: false
 
 http:
   host: localhost
   port: 8883
   ssl-port: 8443
-
-name: DemoExecutor
-
-basic_auth:
-  username: 35cff40c-b4f8-4ca3-9217-d49c9c35f375
-  password: 03b774c9d260ad7329ad3c6dcbc6ea9bec943486
 
 reporter:
   max-retries: 10
@@ -29,8 +39,6 @@ exec_user:
   password: NULL
 
 tmp_dir: 'tmp'
-
-# server_base_url: http://192.168.0.1:8882
 
 services:
 

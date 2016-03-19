@@ -7,7 +7,8 @@
     [cider-ci.ex.scripts.exec :as exec]
     [cider-ci.ex.trials.helper :as trials]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
-    [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
+    [cider-ci.utils.core :refer :all]
+    [cider-ci.utils.map :refer [convert-to-array]]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clojure.tools.logging :as logging]
@@ -26,7 +27,7 @@
 
 (defn- terminate-when-fulfilled? [params script-atom trial]
   (catcher/with-logging {}
-    (let [script-key (:script params)
+    (let [script-key (:script_key params)
           script (trials/get-script-by-script-key script-key trial)
           state (:state script)]
       (some #{state} (:states params)))))
@@ -34,7 +35,7 @@
 (defn- terminate-when-all-fulfilled? [script-atom trial]
   (catcher/with-logging {}
     (boolean
-      (when-let [terminators (not-empty (:terminate-when @script-atom))]
+      (when-let [terminators (not-empty (:terminate_when @script-atom))]
         (every?  #(terminate-when-fulfilled? % script-atom trial)
                 (-> terminators convert-to-array))))))
 

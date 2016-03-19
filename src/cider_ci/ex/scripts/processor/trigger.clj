@@ -10,7 +10,7 @@
     [cider-ci.ex.scripts.processor.skipper :refer [skip-unsatisfiable-scripts]]
     [cider-ci.ex.trials.helper :as trials]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
-    [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
+    [cider-ci.utils.core :refer :all]
     [clj-time.core :as time]
     [clojure.tools.logging :as logging]
     [logbug.catcher :as catcher]

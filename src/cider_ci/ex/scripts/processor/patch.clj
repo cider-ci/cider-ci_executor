@@ -7,7 +7,7 @@
     [cider-ci.ex.scripts.exec :as exec]
     [cider-ci.ex.trials.helper :as trial]
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
-    [cider-ci.utils.map :as map :refer [deep-merge convert-to-array]]
+    [cider-ci.utils.core :refer :all]
     [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clojure.tools.logging :as logging]

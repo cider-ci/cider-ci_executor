@@ -59,7 +59,7 @@
     ["git" "fetch" "--force" "--tags" "--prune" repository-url "+*:*"]
     {:dir path
      :add-env {"GIT_SSL_NO_VERIFY" "1"}
-     :watchdog (* 60 60 1000)}))
+     :timeout "10 Minutes"}))
 
 (defn- initialize-repo [repository-url proxy-url path]
   (system/exec ["rm" "-rf" path])
@@ -120,10 +120,10 @@
 (defn- clone-to-dir [repository-path commit-id dir]
   (system/exec-with-success-or-throw
     ["git" "clone" "--shared" "--no-checkout" repository-path dir]
-    {:watchdog (* 10 1000)})
+    {:timeout "1 Minute"})
   (system/exec-with-success-or-throw
     ["git" "checkout" commit-id]
-    {:dir dir :watchdog (* 60 1000)}))
+    {:dir dir :timeout "1 Minute" }))
 
 (defn serialized-clone-to-dir
   "Clones creates a shallow clone in working-dir by referencing a local clone.
