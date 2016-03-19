@@ -14,24 +14,34 @@
     [clojure.tools.logging :as logging]
     [clojure.string :as string]
     [me.raynes.fs :as fs]
+
+    [clj-logging-config.log4j :as logging-config]
+    [clojure.tools.logging :as logging]
+    [logbug.debug :as debug :refer [I> I>> identity-with-logging]]
     ))
 
 (defn filter-sha1-chars [s]
-  (-> s
+  (I> identity-with-logging
+      s
       (string/split #"")
       ((fn [s] (filter #(re-matches #"[a-f0-9]" %) s)))
       string/join))
 
 (defn get-commit-id-of-submodule [dir relative-submodule-path]
-  (->
-    (system/exec-with-success-or-throw
-      ["git" "submodule" "status"  relative-submodule-path]
-      {:dir dir :watchdog 1000 })
-    :out
-    string/trim
-    (string/split #"\s+")
-    first
-    filter-sha1-chars))
+  (I> identity-with-logging
+      (system/exec-with-success-or-throw
+        ["git" "submodule" "status"  relative-submodule-path]
+        {:dir dir :watchdog (* 30 1000) })
+      :out
+      (#(if (string/blank? %)
+          (throw (ex-info (str "Not git commit for submodule "
+                               dir " rel path " relative-submodule-path
+                               " was found!" ) {:out %} ))
+          %))
+      string/trim
+      (string/split #"\s+")
+      first
+      filter-sha1-chars))
 
 (defn gitmodules-conf [dir]
   (let [path (str dir "/.gitmodules")]

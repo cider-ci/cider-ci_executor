@@ -8,18 +8,19 @@
     )
   (:require
     [cider-ci.utils.config :as config :refer [get-config]]
-    [logbug.debug :as debug]
     [cider-ci.utils.fs :as ci-fs]
     [logbug.thrown :as thrown]
     [cider-ci.utils.http :refer [build-server-url]]
     [cider-ci.utils.system :as system]
-    [clj-logging-config.log4j :as logging-config]
     [clj-time.core :as time]
     [clj-uuid]
     [clojure.pprint :as pprint]
     [clojure.string :as string]
-    [clojure.tools.logging :as logging]
     [me.raynes.fs :as fs]
+
+    [clj-logging-config.log4j :as logging-config]
+    [clojure.tools.logging :as logging]
+    [logbug.debug :as debug :refer [I> I>> identity-with-logging]]
     ))
 
 
