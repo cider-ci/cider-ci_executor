@@ -40,8 +40,8 @@
 
 (defn- execute-trials [trials]
   (doseq [trial trials]
-    (future (catcher/snatch {}
-              (trials/execute trial)))))
+    (catcher/snatch {}
+                    (trials/execute trial))))
 
 (defn- terminate-aborting [trials]
   (->> trials
@@ -54,7 +54,6 @@
 (defn- get-trials []
   (->> (trials.state/get-trials-properties)
        (map #(select-keys % [:trial_id :started_at :finished_at :state]))))
-
 
 (defn sync []
   (catcher/snatch

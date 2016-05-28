@@ -175,28 +175,29 @@
 
 (defn execute [params]
   (let [trial (create-trial params)]
-    (snatch
-      {:level :warn
-       :return-fn (fn [e] (execute-execption-handler trial e))}
-      (accepted-repositories/assert-satisfied (:git_url params))
-      (->> trial
-           create-and-insert-working-dir
-           prepare-and-insert-scripts)
-      (let [ports (occupy-and-insert-ports trial)]
-        (try (->> trial
-                  render-templates
-                  prepare-scripts-environment-variables
-                  template-exclusive-executor-resource-locks
-                  change-owner-of-working-dir
-                  set-and-send-start-params
-                  cider-ci.ex.scripts.processor/process
-                  put-attachments
-                  set-final-state
-                  set-result
-                  send-final-result)
-             (finally (release-ports ports)
-                      trial)))
-      trial)))
+    (future
+      (snatch
+        {:level :warn
+         :return-fn (fn [e] (execute-execption-handler trial e))}
+        (accepted-repositories/assert-satisfied (:git_url params))
+        (->> trial
+             create-and-insert-working-dir
+             prepare-and-insert-scripts)
+        (let [ports (occupy-and-insert-ports trial)]
+          (try (->> trial
+                    render-templates
+                    prepare-scripts-environment-variables
+                    template-exclusive-executor-resource-locks
+                    change-owner-of-working-dir
+                    set-and-send-start-params
+                    cider-ci.ex.scripts.processor/process
+                    put-attachments
+                    set-final-state
+                    set-result
+                    send-final-result)
+               (finally (release-ports ports)
+                        trial)))
+        trial))))
 
 
 ;#### initialize ###############################################################
