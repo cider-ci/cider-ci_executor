@@ -68,14 +68,21 @@
   (git-fetch path (or proxy-url repository-url)))
 
 (defn- repository-includes-commit? [path commit-id]
-  (and (system/exec-with-success?  ["git" "cat-file" "-t" commit-id] {:dir path})
-       (system/exec-with-success?  ["git" "ls-tree" commit-id] {:dir path})))
+  (and (system/exec-with-success? ["git" "cat-file" "-t" commit-id]
+                                  {:dir path})
+       (system/exec-with-success? ["git" "ls-tree" commit-id]
+                                  {:dir path})))
+
+(defn- valid-git-repository? [repository-path]
+  (and (fs/directory? repository-path)
+       (system/exec-with-success?
+         ["git" "rev-parse" "--resolve-git-dir" "."]
+         {:dir repository-path})))
 
 (defn- initialize-or-update-if-required [repository proxy-url commit-id]
   (let [repository-path (:repository-path repository)
         repository-url (:repository-url repository)]
-    (when-not (system/exec-with-success?
-                ["git" "rev-parse" "--resolve-git-dir" repository-path])
+    (when-not (valid-git-repository? repository-path)
       (initialize-repo repository-url proxy-url repository-path))
     (loop [update-count 1]
       (when-not (repository-includes-commit? repository-path commit-id)
@@ -94,7 +101,6 @@
   inside is guaranteed to contain the commit-id."
   [repository-url proxy-url commit-id]
   (let [repository (get-or-create-repository repository-url)]
-    (logging/debug 'repository repository)
     (locking (:lock repository)
       (initialize-or-update-if-required repository proxy-url commit-id))
     repository))
