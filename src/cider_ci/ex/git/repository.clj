@@ -9,15 +9,13 @@
   (:require
     [cider-ci.utils.config :as config :refer [get-config]]
     [cider-ci.utils.fs :as ci-fs]
-    [logbug.thrown :as thrown]
     [cider-ci.utils.http :refer [build-server-url]]
     [cider-ci.utils.system :as system]
+
     [clj-time.core :as time]
-    [clj-uuid]
-    [clojure.pprint :as pprint]
-    [clojure.string :as string]
     [me.raynes.fs :as fs]
 
+    [logbug.thrown :as thrown]
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
     [logbug.debug :as debug :refer [I> I>> identity-with-logging]]
@@ -33,23 +31,26 @@
     (assert (> (count path) (count (str absolute-repos-path))))
     path))
 
-;### Agents ###################################################################
+;### Repositories #############################################################
 
-(defonce repository-agents-atom (atom {}))
+(def repositories-atom (atom {}))
 
-(defn- get-or-create-repository-agent [repository-url]
-  (or (@repository-agents-atom repository-url)
-      ((swap! repository-agents-atom
-              (fn [repository-agents repository-url]
-                (if (repository-agents repository-url)
-                  repository-agents
-                  (conj repository-agents
-                        {repository-url
-                         (agent {:repository-url repository-url
-                                 :repository-path (canonical-repository-path repository-url) }
-                                :error-mode :continue)})))
-              repository-url)
-       repository-url)))
+(defn- swap-in-repository [repositories url]
+  (if (get repositories url)
+    repositories
+    (assoc repositories
+           url
+           {:repository-url url
+            :repository-path (canonical-repository-path url)
+            :exceptions []
+            :created_at (time/now)
+            :lock (Object. )
+            })))
+
+(defn- get-or-create-repository [repository-url]
+  (or (get @repositories-atom repository-url)
+      (get (swap! repositories-atom swap-in-repository repository-url)
+           repository-url)))
 
 
 ;### Core Git #################################################################
@@ -64,17 +65,15 @@
 (defn- initialize-repo [repository-url proxy-url path]
   (system/exec ["rm" "-rf" path])
   (system/exec-with-success-or-throw ["git" "init" "--bare" path])
-  (git-fetch path (or proxy-url repository-url))
-  ;(system/exec-with-success-or-throw ["remote" "add" "origin" repository-url]{:dir path})
-  )
+  (git-fetch path (or proxy-url repository-url)))
 
 (defn- repository-includes-commit? [path commit-id]
-  "Returns false if there is an exeception!"
   (and (system/exec-with-success?  ["git" "cat-file" "-t" commit-id] {:dir path})
        (system/exec-with-success?  ["git" "ls-tree" commit-id] {:dir path})))
 
-(defn- initialize-or-update-if-required [agent-state repository-url proxy-url commit-id]
-  (let [repository-path (:repository-path agent-state)]
+(defn- initialize-or-update-if-required [repository proxy-url commit-id]
+  (let [repository-path (:repository-path repository)
+        repository-url (:repository-url repository)]
     (when-not (system/exec-with-success?
                 ["git" "rev-parse" "--resolve-git-dir" repository-path])
       (initialize-repo repository-url proxy-url repository-path))
@@ -86,66 +85,39 @@
             (Thread/sleep 250)
             (recur (inc update-count))))))
     (when-not (repository-includes-commit? repository-path commit-id)
-      (throw (IllegalStateException. (str "The git commit is not present."
-                                          {:repository-path repository-path :commit-id commit-id}))))
-    (conj agent-state {:last-successful-update {:time (time/now) :commit-id commit-id}})))
+      (throw (ex-info "The git commit is not present."
+                      {:repository-path repository-path
+                       :commit-id commit-id})))))
 
 (defn serialized-initialize-or-update-if-required
-  "Returns a absolute path to bare clone which is guaranteed to contain the commit-id."
+  "Returns the repository object. The referenced :repository-path
+  inside is guaranteed to contain the commit-id."
   [repository-url proxy-url commit-id]
-  (if-not (and repository-url commit-id)
-    (throw (java.lang.IllegalArgumentException. "serialized-initialize-or-update-if-required")))
-  (-> (let [repository-agent (get-or-create-repository-agent repository-url)
-            res-atom (atom nil)
-            fun (fn [agent-state]
-                  (try
-                    (reset! res-atom
-                            (dissoc (initialize-or-update-if-required
-                                      agent-state repository-url proxy-url commit-id)
-                                    :exception))
-                    (catch Exception e
-                      (logging/warn (thrown/stringify e))
-                      (reset! res-atom (conj agent-state {:exception e})))
-                    (finally @res-atom)))]
+  (let [repository (get-or-create-repository repository-url)]
+    (logging/debug 'repository repository)
+    (locking (:lock repository)
+      (initialize-or-update-if-required repository proxy-url commit-id))
+    repository))
 
-        (send-off repository-agent fun)
-        (while (nil? @res-atom) (Thread/sleep 100))
-        (when-let [exception (:exception @res-atom)]
-          (throw exception))
-        (:repository-path @repository-agent))
-      fs/absolute
-      fs/normalized
-      str))
-
-(defn- clone-to-dir [repository-path commit-id dir]
+(defn- clone-to-dir [repository commit-id dir]
+  (let [repository-path (:repository-path repository)]
   (system/exec-with-success-or-throw
     ["git" "clone" "--shared" "--no-checkout" repository-path dir]
-    {:timeout "1 Minute"})
+    {:timeout "5 Minutes"})
   (system/exec-with-success-or-throw
     ["git" "checkout" commit-id]
-    {:dir dir :timeout "1 Minute" }))
+    {:dir dir :timeout "5 Minutes" })))
 
-(defn serialized-clone-to-dir
+(defn clone-with-update-to-dir
   "Clones creates a shallow clone in working-dir by referencing a local clone.
   Throws an exception if creating the clone failed."
   [repository-url proxy-url commit-id working-dir]
-  (let [repository-path (serialized-initialize-or-update-if-required repository-url proxy-url commit-id)
-        repository-agent (get-or-create-repository-agent repository-url)
-        res-atom (atom nil)
-        fun (fn [agent-state]
-              (try (clone-to-dir repository-path commit-id working-dir)
-                   (reset! res-atom
-                           (-> agent-state
-                               (dissoc :exception)
-                               (assoc :last-successful-clone {:time (time/now) :working-dir working-dir})))
-                   (catch Exception e
-                     (logging/warn (thrown/stringify e))
-                     (reset! res-atom (assoc agent-state :exception e)))
-                   (finally @res-atom)))]
-    (send-off repository-agent fun)
-    (while (nil? @res-atom) (Thread/sleep 100))
-    (when-let [exception (:exception @res-atom)]
-      (throw exception))))
+  (let [repository (serialized-initialize-or-update-if-required
+                     repository-url proxy-url commit-id)]
+    (if-not (:serialized_checkouts (get-config))
+      (clone-to-dir repository commit-id working-dir)
+      (locking (:lock repository)
+        (clone-to-dir repository commit-id working-dir)))))
 
 
 ;### Debug #####################################################################

@@ -47,7 +47,7 @@
     (let [working-dir (-> (str (:working_dir (get-config))
                                (File/separator) working-dir-id)
                           fs/absolute fs/normalized str)]
-      (repository/serialized-clone-to-dir repository-url proxy-url commit-id working-dir)
+      (repository/clone-with-update-to-dir repository-url proxy-url commit-id working-dir)
       (when-let [clone-options (-> params :git_options :submodules)]
         (submodules/update working-dir clone-options git-proxies))
       working-dir)))

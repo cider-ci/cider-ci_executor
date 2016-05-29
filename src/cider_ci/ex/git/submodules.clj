@@ -87,7 +87,7 @@
               commit-id (get-commit-id-of-submodule dir path)
               proxy-url ((-> commit-id str keyword) git-proxies)
               bare-dir (repository/serialized-initialize-or-update-if-required url proxy-url commit-id)]
-          (repository/serialized-clone-to-dir url proxy-url commit-id submodule-dir)
+          (repository/clone-with-update-to-dir url proxy-url commit-id submodule-dir)
           (update-submodule dir path bare-dir clone-options git-proxies))))))
 
 ;### Debug #####################################################################
