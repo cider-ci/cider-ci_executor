@@ -52,3 +52,53 @@ services:
 windows:
   fsi_path: C:\Program Files (x86)\Microsoft SDKs\F#\4.0\Framework\v4.0\Fsi.exe
 
+
+# WARNING: this section is a duplicate from the main project config
+# to be kept in sync manually
+constants:
+  STATES:
+    JOB:
+      # custom order for the UI here, do not resort alphabetically!
+      - passed
+      - executing
+      - pending
+      - aborting
+      - aborted
+      - defective
+      - failed
+    TASK:
+      - aborted
+      - aborting
+      - defective
+      - executing
+      - failed
+      - passed
+      - pending
+    TRIAL:
+      - aborted
+      - aborting
+      - defective
+      - dispatching
+      - executing
+      - failed
+      - passed
+      - pending
+    SCRIPT:
+      - aborted
+      - defective
+      - executing
+      - failed
+      - passed
+      - pending
+      - skipped
+      - waiting
+    FINISHED:
+      - aborted
+      - defective
+      - failed
+      - passed
+      - skipped
+    IN_PROGRESS:
+      - aborting
+      - dispatching
+      - executing
