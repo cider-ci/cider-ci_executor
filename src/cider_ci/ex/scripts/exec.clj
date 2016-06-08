@@ -173,7 +173,7 @@
       (when (expired? script-atom (time/seconds 60))
         (throw (IllegalStateException.
                  (str "Giving up to wait for termination!" @script-atom))))
-      (Thread/sleep 1000))))
+      (Thread/sleep 50))))
 
 (defn execute [script-atom]
   (try (merge-params script-atom
