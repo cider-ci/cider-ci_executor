@@ -5,6 +5,8 @@
 
 (ns cider-ci.ex.utils
   (:require
+    [cider-ci.utils.config :refer [get-config]]
+
     [clojure.java.io :as io]
 
     [clj-logging-config.log4j :as logging-config]
@@ -47,6 +49,9 @@
                   (recur)))))))
       os)))
 
+
+(defn terminal-states []
+  (-> (get-config) :constants :STATES :FINISHED set))
 
 
 ;### Debug ####################################################################

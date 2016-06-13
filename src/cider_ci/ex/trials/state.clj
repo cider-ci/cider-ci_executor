@@ -41,7 +41,7 @@
 
 (defn get-trials-properties []
   "Returns a sequence of the not yet discarded trials of any state.
-  Each in the same format as in get-trial proerties."
+  Each in the same format as in the get-trial properties."
   (->> @trials-atom
       seq
       (map #(-> % second :params-atom deref))))

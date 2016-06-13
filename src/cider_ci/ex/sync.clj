@@ -8,10 +8,11 @@
   (:require
     [cider-ci.ex.accepted-repositories :as accepted-repositories]
     [cider-ci.ex.scripts.processor.abort :as scripts-abort]
+    [cider-ci.ex.self-update :refer [self-update!]]
     [cider-ci.ex.traits :as traits]
     [cider-ci.ex.trials :as trials]
     [cider-ci.ex.trials.state :as trials.state]
-    [cider-ci.ex.self-update :refer [self-update!]]
+    [cider-ci.ex.utils :refer [terminal-states]]
 
     [cider-ci.utils.config :refer [get-config parse-config-duration-to-seconds]]
     [cider-ci.utils.daemon :refer [defdaemon]]
@@ -33,9 +34,7 @@
 
 (defn- unfinished-trials-count []
   (->> (trials.state/get-trials-properties)
-       (filter #(-> % :state
-                    #{"defective" "passed" "failed" "skipped" "aborted"}
-                    boolean not))
+       (filter #(-> % :state ((terminal-states)) boolean not))
        count))
 
 (defn- execute-trials [trials]

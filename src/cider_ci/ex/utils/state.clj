@@ -4,13 +4,14 @@
 
 (ns cider-ci.ex.utils.state
   (:require
+    [cider-ci.ex.utils :refer [terminal-states]]
+
     [cider-ci.utils.config :as config :refer [get-config merge-into-conf]]
 
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
     [logbug.debug :as debug]
     ))
-
 
 (defn- deref-or-val [x]
   (if (instance? clojure.lang.IDeref x)
@@ -27,5 +28,4 @@
   (= "executing" (:state (deref-or-val x))))
 
 (defn finished? [x]
-  (boolean ((-> (get-config) :constants :STATES :FINISHED set)
-            (:state (deref-or-val x)))))
+  (-> x deref-or-val :state ((terminal-states)) boolean))
