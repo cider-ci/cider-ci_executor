@@ -69,15 +69,19 @@
 
 (defn- repository-includes-commit? [path commit-id]
   (and (system/exec-with-success? ["git" "cat-file" "-t" commit-id]
-                                  {:dir path})
+                                  {:dir path
+                                   :timeout "5 Seconds"
+                                   })
        (system/exec-with-success? ["git" "ls-tree" commit-id]
-                                  {:dir path})))
+                                  {:dir path
+                                   :timeout "5 Seconds"})))
 
 (defn- valid-git-repository? [repository-path]
   (and (fs/directory? repository-path)
        (system/exec-with-success?
          ["git" "rev-parse" "--resolve-git-dir" "."]
-         {:dir repository-path})))
+         {:dir repository-path
+          :timout "5 Seconds"})))
 
 (defn- initialize-or-update-if-required [repository proxy-url commit-id]
   (let [repository-path (:repository-path repository)

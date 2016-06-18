@@ -31,7 +31,7 @@
   (I> identity-with-logging
       (system/exec-with-success-or-throw
         ["git" "submodule" "status"  relative-submodule-path]
-        {:dir dir :watchdog "1 Minute"  })
+        {:dir dir :timeout "1 Minute"  })
       :out
       (#(if (string/blank? %)
           (throw (ex-info (str "Not git commit for submodule "
