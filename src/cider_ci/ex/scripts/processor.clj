@@ -39,7 +39,7 @@
     (patch/add-watchers trial)
     (trigger/trigger trial "initial")
     (loop []
-      (Thread/sleep 50)
+      (Thread/sleep 100)
       (let [scripts-atoms (trials/get-scripts-atoms trial)]
         (when (and (not (every? finished? scripts-atoms))
                    (or (some executing-or-waiting? scripts-atoms)

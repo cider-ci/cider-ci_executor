@@ -27,7 +27,7 @@
 (defn build-continuous-output-reader
   [output-handler finished-fn
    & {:keys [buffer-size sleep-ms]
-      :or {buffer-size (* 100 1024) sleep-ms 50}}]
+      :or {buffer-size (* 100 1024) sleep-ms 1000}}]
   (catcher/with-logging {}
     (let [buffer (make-array Byte/TYPE buffer-size)
           is (PipedInputStream. buffer-size)

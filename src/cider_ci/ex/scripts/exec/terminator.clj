@@ -122,7 +122,7 @@
 (defn- wait-for-realized-or-expired-not-over [script-atom ds]
   (while (and (not (realized? (-> @script-atom :exec-future)))
               (not (expired? script-atom ds)))
-    (Thread/sleep 50)))
+    (Thread/sleep 1000)))
 
 (defn terminate [script-atom]
   (cond
