@@ -21,7 +21,7 @@
                  [logbug "4.0.0"]
                  [org.clojars.hozumi/clj-commons-exec "1.2.0"]
                  ]
-  :plugins [[cider-ci/lein_cider-ci_dev "0.2.0"]]
+  :plugins [[cider-ci/lein_cider-ci_dev "0.2.1"]]
   :source-paths ["src"]
   :profiles {:dev
              {:dependencies [[midje "1.8.3"]]

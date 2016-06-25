@@ -39,8 +39,7 @@
                        :accepted-repositories @accepted-repositories}))))
 
 (defn- reload-accepted-repositories []
-  (->> [(system-path ".." "config" "accepted-repositories.yml")
-        (system-path "config" "accepted-repositories.yml")]
+  (->> [(system-path "config" "accepted-repositories.yml")]
        (read-tags-from-yaml-files)
        set-accepted-repositories))
 
