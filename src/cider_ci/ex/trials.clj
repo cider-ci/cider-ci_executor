@@ -15,7 +15,7 @@
     [cider-ci.ex.scripts.processor]
     [cider-ci.ex.shared :refer :all]
     [cider-ci.ex.trials.helper :refer :all]
-    [cider-ci.ex.trials.state :refer [create-trial]]
+    [cider-ci.ex.trials.state :refer [create-trial get-trial]]
     [cider-ci.ex.trials.templates :refer [render-templates render-string-template]]
     [cider-ci.utils.core :refer :all]
     [cider-ci.utils.daemon :as daemon]
@@ -174,30 +174,31 @@
   trial)
 
 (defn execute [params]
-  (let [trial (create-trial params)]
-    (future
-      (snatch
-        {:level :warn
-         :return-fn (fn [e] (execute-execption-handler trial e))}
-        (accepted-repositories/assert-satisfied (:git_url params))
-        (->> trial
-             create-and-insert-working-dir
-             prepare-and-insert-scripts)
-        (let [ports (occupy-and-insert-ports trial)]
-          (try (->> trial
-                    render-templates
-                    prepare-scripts-environment-variables
-                    template-exclusive-executor-resource-locks
-                    change-owner-of-working-dir
-                    set-and-send-start-params
-                    cider-ci.ex.scripts.processor/process
-                    put-attachments
-                    set-final-state
-                    set-result
-                    send-final-result)
-               (finally (release-ports ports)
-                        trial)))
-        trial))))
+  (when-not (-> params :trial_id get-trial)
+    (let [trial (create-trial params)]
+      (future
+        (snatch
+          {:level :warn
+           :return-fn (fn [e] (execute-execption-handler trial e))}
+          (accepted-repositories/assert-satisfied (:git_url params))
+          (->> trial
+               create-and-insert-working-dir
+               prepare-and-insert-scripts)
+          (let [ports (occupy-and-insert-ports trial)]
+            (try (->> trial
+                      render-templates
+                      prepare-scripts-environment-variables
+                      template-exclusive-executor-resource-locks
+                      change-owner-of-working-dir
+                      set-and-send-start-params
+                      cider-ci.ex.scripts.processor/process
+                      put-attachments
+                      set-final-state
+                      set-result
+                      send-final-result)
+                 (finally (release-ports ports)
+                          trial)))
+          trial)))))
 
 
 ;#### initialize ###############################################################
