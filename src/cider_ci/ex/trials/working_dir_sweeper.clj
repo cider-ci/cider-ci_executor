@@ -48,11 +48,10 @@
           (logging/info "deleting working-dir " working-dir)
           (delete-recursively working-dir))))))
 
-(defdaemon "trial-working-dir-sweeper" 60 (delete-orphans))
+(defdaemon "trial-working-dir-sweeper" 1 (delete-orphans))
 
 (defn initialize []
-  (start-trial-working-dir-sweeper)
-  )
+  (start-trial-working-dir-sweeper))
 
 
 ;### Debug ####################################################################
