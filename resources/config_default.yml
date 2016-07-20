@@ -1,9 +1,8 @@
-#name: DemoExecutor
-#
-#basic_auth:
-#  username: 35cff40c-b4f8-4ca3-9217-d49c9c35f375
-#  password: 03b774c9d260ad7329ad3c6dcbc6ea9bec943486
-#
+name: DemoExecutor
+
+basic_auth:
+  username: DemoExecutor
+  password: ba9de28c854e5e1bdea2ded0afe1ac40c2814540
 
 self_update: false
 
