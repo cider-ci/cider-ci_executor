@@ -64,6 +64,8 @@
                        (.availableProcessors(Runtime/getRuntime)))
           data {:traits traits
                 :max_load max-load
+                :temporary_overload_factor (or (:temporary_overload_factor config)
+                                               1.5)
                 :accepted_repositories (accepted-repositories/get-accepted-repositories)
                 :available_load (- max-load (unfinished-trials-count))
                 :trials (get-trials)

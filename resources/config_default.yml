@@ -6,6 +6,8 @@ basic_auth:
 
 self_update: false
 
+temporary_overload_factor: 1.5
+
 server_secret: master-secret
 
 # for is running check during tests
