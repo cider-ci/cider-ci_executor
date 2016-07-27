@@ -19,7 +19,6 @@
     [cider-ci.utils.fs :as ci-fs]
 
     [clj-commons-exec :as commons-exec]
-    [clj-shellwords.core :refer [shell-escape]]
     [clj-time.core :as time]
     [clojure.set :refer [difference union]]
     [clojure.string :as string :refer [split trim]]
@@ -27,7 +26,7 @@
 
     [clj-logging-config.log4j :as logging-config]
     [clojure.tools.logging :as logging]
-    [logbug.debug :as debug]
+    [logbug.debug :as debug :refer [I> I>> identity-with-logging]]
     [logbug.thrown :as thrown]
 
     ))
@@ -64,7 +63,7 @@
 (defn- sudo-env-vars [vars]
   (->> vars
        (map (fn [[k v]]
-              (str (shell-escape k) "=" (shell-escape v))))))
+              (str k "=" v)))))
 
 ;### wrapper ##################################################################
 
@@ -114,7 +113,6 @@
     #(scripts.patch/send-field-patch-via-agent script-atom field-name %)
     #(finished? script-atom)))
 
-; TODO use system/exec ?
 (defn exec-sh [script-atom]
   (let [params @script-atom
         command (wrapper-command params)
@@ -201,4 +199,4 @@
 ;(remove-ns (symbol (str *ns*)))
 ;(debug/debug-ns *ns*)
 ;(logging-config/set-logger! :level :debug)
-;(debug/wrap-with-log-debug #'exec-sh)
+;(debug/wrap-with-log-debug #'sudo-env-vars)
