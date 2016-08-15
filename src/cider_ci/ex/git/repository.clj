@@ -118,6 +118,14 @@
     ["git" "checkout" commit-id]
     {:dir dir :timeout "5 Minutes" })))
 
+(defn reset-origin [repository-url working-dir]
+  (system/exec-with-success-or-throw
+    ["git" "remote" "remove" "origin"]
+    {:dir working-dir})
+  (system/exec-with-success-or-throw
+    ["git" "remote" "add" "origin" repository-url]
+    {:dir working-dir}))
+
 (defn clone-with-update-to-dir
   "Clones creates a shallow clone in working-dir by referencing a local clone.
   Throws an exception if creating the clone failed."
@@ -127,7 +135,8 @@
     (if-not (:serialized_checkouts (get-config))
       (clone-to-dir repository commit-id working-dir)
       (locking (:lock repository)
-        (clone-to-dir repository commit-id working-dir)))))
+        (clone-to-dir repository commit-id working-dir)))
+    (reset-origin repository-url working-dir)))
 
 
 ;### Debug #####################################################################
