@@ -27,7 +27,7 @@
               :plugins [[lein-midje "3.1.1"]]
               :repositories [["tmp" {:url "http://maven-repo-tmp.drtom.ch" :snapshots false}]]
               :resource-paths ["config" "resources"]}}
-  :aot [:all]
+  :aot [cider-ci.self #"cider-ci.*"]
   :main cider-ci.ex.main
   ; :repositories [["tmp" {:url "http://maven-repo-tmp.drtom.ch" :snapshots false}]]
   :repl-options {:timeout  120000}
