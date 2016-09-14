@@ -53,8 +53,8 @@
 (defn- create-script-file [params]
   (let [script (:body params)
         script-file (clj-fs/file (script-file-path params))]
-    (doto script-file clj-fs/create .deleteOnExit (spit script)
-      (.setExecutable true false))
+    (doto script-file
+      clj-fs/create (spit script) (.setExecutable true false))
     (.getAbsolutePath script-file)))
 
 
@@ -91,7 +91,6 @@
   (let [working-dir (working-dir params)
         wrapper-file (doto (clj-fs/file (wrapper-file-path params))
                        clj-fs/create
-                       .deleteOnExit
                        (spit (wrapper-body params))
                        (.setExecutable true false))]
     (logging/debug {:WRAPPER-FILE (.getAbsolutePath wrapper-file)})
@@ -177,16 +176,21 @@
   (try (merge-params script-atom
                      {:started_at (time/now)
                       :state "executing"
-                      :watchdog (create-watchdog)})
-       ; do it again because the env vars must be already in place when calling
-       ; create-script-file and create-wrapper-file
-       (merge-params script-atom
-                     {:script-file (create-script-file @script-atom)
-                      :wrapper-file (create-wrapper-file @script-atom)})
-       (let [exec-future (exec-sh script-atom)]
-         (merge-params script-atom {:exec-future exec-future})
-         (wait-for-or-terminate script-atom)
-         (merge-params script-atom (get-final-parameters @exec-future)))
+                      :watchdog (create-watchdog)
+                      :lock (str (:trial_id @script-atom) "_" (:key @script-atom))})
+       ; TODO we get occasional bug reports with 'text file busy" in theory the
+       ; lock approach makes no sense because writing is done when we start the
+       ; script ; some people claim it helps; so we give it a try (it might also
+       ; just help because some side effect, e.g. timing ...
+       (locking (:lock @script-atom)
+         (merge-params script-atom
+                       {:script-file (create-script-file @script-atom)
+                        :wrapper-file (create-wrapper-file @script-atom)}))
+       (locking (:lock @script-atom)
+         (let [exec-future (exec-sh script-atom)]
+           (merge-params script-atom {:exec-future exec-future})
+           (wait-for-or-terminate script-atom)
+           (merge-params script-atom (get-final-parameters @exec-future))))
        script-atom
        (catch Exception e
          (set-script-atom-for-execption script-atom e)
