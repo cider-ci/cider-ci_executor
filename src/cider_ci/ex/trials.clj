@@ -46,15 +46,10 @@
     (send-patch-via-agent trial (select-keys @params-atom [:state :started_at])))
   trial)
 
-(defn- prepare-and-insert-scripts [trial]
-  (let [params-atom (get-params-atom trial)
-        initial-scripts (:scripts @params-atom)
-        script-atoms (->> initial-scripts
-                          (map (fn [script]
-                                 [(:key script)
-                                  (scripts/prepare-script script @params-atom)]))
-                          (into {}))]
-    (swap! params-atom #(conj %1 {:scripts %2}) script-atoms))
+(defn- prepare-scripts [trial]
+  (let [params-atom (get-params-atom trial)]
+    (doseq [[_ script-atom] (:scripts @params-atom)]
+      (scripts/prepare-script script-atom @params-atom)))
   trial)
 
 
@@ -183,7 +178,7 @@
           (accepted-repositories/assert-satisfied (:git_url params))
           (->> trial
                create-and-insert-working-dir
-               prepare-and-insert-scripts)
+               prepare-scripts)
           (let [ports (occupy-and-insert-ports trial)]
             (try (->> trial
                       render-templates

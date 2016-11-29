@@ -6,9 +6,10 @@
     [cider-ci.ex.utils.state :refer [pending? executing? finished?]]
     [cider-ci.utils.core :refer :all]
     [clj-time.core :as time]
+
     [clojure.tools.logging :as logging]
     [logbug.catcher :as catcher]
-    [logbug.debug :as debug]
+    [logbug.debug :as debug :refer [I> I>> identity-with-logging]]
     ))
 
 
@@ -16,7 +17,8 @@
 ;### abort ####################################################################
 
 (defn- set-to-terminate-when-executing [trial]
-  (->> (trials/get-scripts-atoms trial)
+  (I>> identity-with-logging
+       (trials/get-scripts-atoms trial)
        (filter #(-> % deref executing?))
        (filter #(-> % deref :ignore_abort not))
        (map (fn [script-atom]
@@ -24,7 +26,8 @@
        doall))
 
 (defn set-to-skipped-when-pending [trial]
-  (->> (trials/get-scripts-atoms trial)
+  (I>> identity-with-logging
+       (trials/get-scripts-atoms trial)
        (filter #(-> % deref pending?))
        (filter #(-> % deref :ignore-abort not))
        (map #(scripts-skipper/skip-script % "aborting"))

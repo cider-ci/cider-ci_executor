@@ -29,3 +29,8 @@
 
 (defn finished? [x]
   (-> x deref-or-val :state ((terminal-states)) boolean))
+
+;### Debug ####################################################################
+;(logging-config/set-logger! :level :debug)
+;(logging-config/set-logger! :level :info)
+;(debug/debug-ns *ns*)

@@ -80,12 +80,13 @@
 
 (defn- sync-interval-pause-duration []
   (or (catcher/snatch {}
-        (parse-config-duration-to-seconds :sync_interval_pause_duration))
+                      (parse-config-duration-to-seconds :sync_interval_pause_duration))
       3))
 
 (defn initialize []
   (defdaemon "sync" (sync-interval-pause-duration) (sync))
-  (start-sync))
+  (start-sync)
+  )
 
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)

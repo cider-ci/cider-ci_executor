@@ -50,13 +50,19 @@
   "Creates a new trial, stores it in trials under its id and returns the trial"
   [params]
   (let [id (:trial_id params)
-        params (assoc params :started_at (time/now))]
+        params (assoc params
+                      :scripts (->> (:scripts params)
+                                    (map (fn [script-prams]
+                                           [(:key script-prams) (atom script-prams)]))
+                                    (into {}))
+                      :started_at (time/now))]
     (swap! trials-atom
            (fn [trials params id]
              (conj trials {id {:params-atom (atom  params)
                                :report-agent (agent [] :error-mode :continue)}}))
            params id)
     (@trials-atom id)))
+
 
 
 ;### sweep ####################################################################

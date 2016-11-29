@@ -20,25 +20,28 @@
 (defn- prepare-timeout [script-params]
   (let [timeout (or (:timeout script-params)
                     (:default_script_timeout (get-config)))]
-    (assoc script-params :timeout
-           (if (number? timeout)
-             timeout
-             (if (re-matches #"\d+" timeout)
-               (read-string timeout)
-               (parse-string-to-seconds timeout))))))
+    (if (number? timeout)
+      timeout
+      (if (re-matches #"\d+" timeout)
+        (read-string timeout)
+        (parse-string-to-seconds timeout)))))
 
 (defn- prepare-script-params [script-params trial-params]
   (deep-merge
     (select-keys trial-params [:environment_variables])
-    (-> script-params prepare-timeout)
+    script-params
+    {:timeout (prepare-timeout script-params)}
     (select-keys trial-params [:working_dir :private_dir])))
 
-(defn prepare-script [script-params trial-params]
-  (patch/create-patch-agent script-params trial-params)
-  (-> (atom (prepare-script-params script-params trial-params))
-      patch/add-watcher))
+(defn prepare-script [script-atom trial-params]
+  (patch/create-patch-agent @script-atom trial-params)
+  (swap! script-atom
+         (fn [script-params]
+           (prepare-script-params script-params trial-params)))
+  (patch/add-watcher script-atom))
 
 ; TODO: clean patch-agents and unwatch
+; TODO move all the watch business to trial/state ???
 
 ;### Debug ####################################################################
 ;(logging-config/set-logger! :level :debug)
