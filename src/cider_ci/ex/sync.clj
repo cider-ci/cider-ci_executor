@@ -70,7 +70,11 @@
                 :available_load (- max-load (unfinished-trials-count))
                 :trials (get-trials)
                 :status {:memory (runtime/check-memory-usage)
-                         :version cider-ci.self/VERSION}}]
+                         :version (-> cider-ci.self/VERSION
+                                      (clojure.string/split #"\s+")
+                                      second
+                                      (clojure.string/split #"\+")
+                                      first)}}]
       (let [response (http/post url {:body (json/write-str data)})
             body (json/read-str (:body response) :key-fn keyword)]
         (execute-trials (:trials-to-be-executed body))
