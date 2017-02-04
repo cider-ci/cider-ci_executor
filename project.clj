@@ -28,7 +28,7 @@
               :repositories [["tmp" {:url "http://maven-repo-tmp.drtom.ch" :snapshots false}]]
               :resource-paths ["config" "resources"]}}
   :aot [cider-ci.self #"cider-ci.*"]
-  :main cider-ci.ex.main
+  :main cider-ci.executor.main
   ; :repositories [["tmp" {:url "http://maven-repo-tmp.drtom.ch" :snapshots false}]]
   :repl-options {:timeout  120000}
   )
