@@ -19,7 +19,6 @@
 (defn nio-path [s]
   (java.nio.file.Paths/get s (into-array [""])))
 
-
 (defn move!
   {:tag java.nio.file.Path}
   [source target]
@@ -40,22 +39,19 @@
       (io/copy in out))
     (move! tmppath target)))
 
-
 (defn exit []
   (System/exit 0))
 
-(defn self-update! [params]
-  (when (not= (:version params) cider-ci.self/VERSION)
-    (when (:self_update (get-config))
-      (when-not (.isLocked self-update-lock)
-        (.lock self-update-lock)
-        (try
-          (catcher/with-logging {}
-            (logging/info "Performing self-update")
-            (download)
-            (exit))
-          (finally
-            (.unlock self-update-lock)))))))
+(defn self-update! []
+  (when-not (.isLocked self-update-lock)
+    (.lock self-update-lock)
+    (try
+      (catcher/with-logging {}
+        (logging/info "Performing self-update")
+        (download)
+        (exit))
+      (finally
+        (.unlock self-update-lock)))))
 
 
 ;### Debug ####################################################################

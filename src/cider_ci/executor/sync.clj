@@ -54,6 +54,16 @@
   (->> (trials.state/get-trials-properties)
        (map #(select-keys % [:trial_id :started_at :finished_at :state]))))
 
+(defn compare-version []
+  "The version used to compare against the server version.  This does only take
+  the defined semantic version into account. We will switch to a signature based
+  comparison after the server and executor have been merged."
+  (-> cider-ci.self/VERSION
+      (clojure.string/split #"\s+")
+      second
+      (clojure.string/split #"\+")
+      first))
+
 (defn sync []
   (catcher/snatch
     {}
@@ -62,6 +72,7 @@
           traits (into [] (traits/get-traits))
           max-load (or (:max_load config)
                        (.availableProcessors(Runtime/getRuntime)))
+          compare-version (compare-version)
           data {:traits traits
                 :max_load max-load
                 :temporary_overload_factor (or (:temporary_overload_factor config)
@@ -70,17 +81,14 @@
                 :available_load (- max-load (unfinished-trials-count))
                 :trials (get-trials)
                 :status {:memory (runtime/check-memory-usage)
-                         :version (-> cider-ci.self/VERSION
-                                      (clojure.string/split #"\s+")
-                                      second
-                                      (clojure.string/split #"\+")
-                                      first)}}]
+                         :version compare-version}}]
       (let [response (http/post url {:body (json/write-str data)})
             body (json/read-str (:body response) :key-fn keyword)]
         (execute-trials (:trials-to-be-executed body))
         (terminate-aborting (->> body :trials-being-processed))
-        (self-update! body)
-        ))))
+        (when (and (not= (:version body) compare-version)
+                   (:self_update (get-config)))
+          (self-update!))))))
 
 (defn- sync-interval-pause-duration []
   (or (catcher/snatch {}
