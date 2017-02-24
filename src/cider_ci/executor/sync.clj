@@ -82,7 +82,9 @@
                 :trials (get-trials)
                 :status {:memory (runtime/check-memory-usage)
                          :version compare-version}}]
-      (let [response (http/post url {:body (json/write-str data)})
+      (let [response (http/post url {:body (json/write-str data)
+                                     :socket-timeout 5000
+                                     :conn-timeout 5000})
             body (json/read-str (:body response) :key-fn keyword)]
         (execute-trials (:trials-to-be-executed body))
         (terminate-aborting (->> body :trials-being-processed))
