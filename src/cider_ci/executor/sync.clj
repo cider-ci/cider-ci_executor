@@ -60,7 +60,7 @@
   comparison after the server and executor have been merged."
   (-> cider-ci.self/VERSION
       (clojure.string/split #"\s+")
-      second
+      last
       (clojure.string/split #"\+")
       first))
 
